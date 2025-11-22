@@ -4,7 +4,7 @@ import {
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
   BookOpen, Clock, AlertCircle, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
@@ -14,33 +14,30 @@ import {
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
-// 🔴 ส่วนสำคัญ: ตั้งค่า FIREBASE CONFIG 🔴
+// 🔴 ตั้งค่า FIREBASE CONFIG 🔴
 // ------------------------------------------------------------------
-
-// 1. สำหรับการรันในเครื่องตัวเอง หรือ Vercel (ให้แก้ตรงนี้ตอนก๊อปไปลงคอม)
 const localFirebaseConfig = {
-  apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4", // ⚠️ ใส่ API Key ของคุณที่นี่
-  authDomain: "director-log-2025.firebaseapp.com",
-  projectId: "director-log-2025",
-  storageBucket: "director-log-2025.appspot.com",
-  messagingSenderId: "123456...",
-  appId: "1:123456:web:..."
+  // ⚠️ ใส่ API Key ของคุณที่นี่ (ห้ามลืม!)
+  apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4",
+  authDomain: "director-book-log.firebaseapp.com",
+  projectId: "director-book-log",
+  storageBucket: "director-book-log.firebasestorage.app",
+  messagingSenderId: "183084714920",
+  appId: "1:183084714920:web:d72d28e6c95bdb82002b9d",
+  measurementId: "G-ZCY2MW3KC6"
 };
 
-// 2. Logic เลือก Config อัตโนมัติ (ไม่ต้องแก้ส่วนนี้)
-// - ถ้ารันในหน้าเว็บนี้ (Sandbox) จะใช้ __firebase_config
-// - ถ้ารันในเครื่องคุณ (Local) จะใช้ localFirebaseConfig ด้านบน
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
   ? JSON.parse(__firebase_config) 
   : localFirebaseConfig;
 
-// เริ่มต้นระบบ
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Initialize Firebase safely
+const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
+const auth = app ? getAuth(app) : null;
+const db = app ? getFirestore(app) : null;
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// --- ตั้งค่าระบบ ---
+// --- Constants ---
 const LAST_OLD_SYSTEM_NUMBER = 339; 
 
 const DEPARTMENTS = [
@@ -90,8 +87,6 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
     return typeof selected === 'string' ? selected : selected?.label;
   };
 
-  const displayLabel = getDisplayLabel();
-
   return (
     <div className="space-y-1.5" ref={wrapperRef}>
       {label && <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>}
@@ -99,50 +94,23 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`
-            w-full px-4 py-3 bg-white border rounded-xl text-sm flex items-center justify-between transition-all duration-200 group
-            ${isOpen 
-              ? 'border-blue-500 ring-4 ring-blue-50/50 shadow-md' 
-              : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50/50'}
-          `}
+          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm flex items-center justify-between transition-all duration-200 group ${isOpen ? 'border-blue-500 ring-4 ring-blue-50/50 shadow-md' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50/50'}`}
         >
           <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && (
-               <div className={`p-1 rounded-md transition-colors ${isOpen ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50'}`}>
-                 <Icon size={16} />
-               </div>
-             )}
-             <span className={`truncate font-medium ${!displayLabel ? 'text-slate-400' : 'text-slate-700'}`}>
-                {displayLabel || placeholder}
-             </span>
+             {Icon && <div className={`p-1 rounded-md transition-colors ${isOpen ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50'}`}><Icon size={16} /></div>}
+             <span className={`truncate font-medium ${!getDisplayLabel() ? 'text-slate-400' : 'text-slate-700'}`}>{getDisplayLabel() || placeholder}</span>
           </div>
-          
           <ChevronDown size={18} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-500' : ''}`} />
         </button>
-
         {isOpen && (
           <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-60 overflow-auto animate-in fade-in zoom-in-95 duration-200 origin-top p-1.5">
             {options.map((opt, idx) => {
               const optValue = typeof opt === 'string' ? opt : opt.value;
               const optLabel = typeof opt === 'string' ? opt : opt.label;
               const isSelected = optValue === value;
-
               return (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    onChange(optValue);
-                    setIsOpen(false);
-                  }}
-                  className={`
-                    px-4 py-2.5 text-sm rounded-lg cursor-pointer transition-all flex items-center justify-between mb-0.5 last:mb-0
-                    ${isSelected 
-                      ? 'bg-blue-50 text-blue-700 font-semibold' 
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}
-                  `}
-                >
-                  <span>{optLabel}</span>
-                  {isSelected && <Check size={16} className="text-blue-500" />}
+                <div key={idx} onClick={() => { onChange(optValue); setIsOpen(false); }} className={`px-4 py-2.5 text-sm rounded-lg cursor-pointer transition-all flex items-center justify-between mb-0.5 last:mb-0 ${isSelected ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-blue-600'}`}>
+                  <span>{optLabel}</span> {isSelected && <Check size={16} className="text-blue-500" />}
                 </div>
               );
             })}
@@ -155,45 +123,12 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
 const DeleteButton = ({ onDelete }) => {
   const [confirming, setConfirming] = useState(false);
-
   useEffect(() => {
-    if (confirming) {
-      const timer = setTimeout(() => setConfirming(false), 3000); 
-      return () => clearTimeout(timer);
-    }
+    if (confirming) { const timer = setTimeout(() => setConfirming(false), 3000); return () => clearTimeout(timer); }
   }, [confirming]);
-
-  const handleClick = (e) => {
-    e.stopPropagation(); 
-    if (confirming) {
-      onDelete();
-      setConfirming(false);
-    } else {
-      setConfirming(true);
-    }
-  };
-
-  if (confirming) {
-    return (
-      <button 
-        onClick={handleClick}
-        className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-red-200 z-20 text-xs font-bold animate-in fade-in zoom-in duration-200 flex items-center gap-1 hover:bg-red-600 transition-all"
-        title="กดอีกครั้งเพื่อยืนยันการลบ"
-      >
-        <Trash2 size={14} /> ยืนยัน?
-      </button>
-    );
-  }
-
-  return (
-    <button 
-      onClick={handleClick}
-      className="absolute top-4 right-4 text-slate-300 bg-white/80 backdrop-blur-sm hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all duration-200 z-10 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 border border-transparent hover:border-red-100"
-      title="ลบรายการ"
-    >
-      <Trash2 size={16} />
-    </button>
-  );
+  const handleClick = (e) => { e.stopPropagation(); if (confirming) { onDelete(); setConfirming(false); } else { setConfirming(true); } };
+  if (confirming) return <button onClick={handleClick} className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-red-200 z-20 text-xs font-bold animate-in fade-in zoom-in duration-200 flex items-center gap-1 hover:bg-red-600 transition-all"><Trash2 size={14} /> ยืนยัน?</button>;
+  return <button onClick={handleClick} className="absolute top-4 right-4 text-slate-300 bg-white/80 backdrop-blur-sm hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-all duration-200 z-10 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 border border-transparent hover:border-red-100"><Trash2 size={16} /></button>;
 };
 
 // --- Main App ---
@@ -217,38 +152,21 @@ export default function DirectorBookLog() {
   const [filterStatus, setFilterStatus] = useState('all'); 
 
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        // ใช้ Custom Token ถ้าอยู่ใน Sandbox เพื่อความเสถียร
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (error) {
-        console.error("Auth Error", error);
-        setErrorMsg("ไม่สามารถเข้าสู่ระบบได้ (ตรวจสอบ Config)");
-      }
-    };
-    initAuth();
-    
+    if (!auth) return;
+    signInAnonymously(auth).catch((error) => {
+      console.error("Auth Error", error);
+      setErrorMsg("เชื่อมต่อระบบไม่ได้ กรุณารีเฟรช");
+    });
     const saved = localStorage.getItem('director_book_log_receivers');
     if (saved) {
-      try {
-        setSavedReceivers(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse saved receivers");
-      }
+      try { setSavedReceivers(JSON.parse(saved)); } catch (e) {}
     }
-
     const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    
-    // ปรับ path ตาม environment
+    if (!user || !db) return;
     const collectionName = 'director_submissions';
     const collectionPath = typeof __firebase_config !== 'undefined' 
       ? collection(db, 'artifacts', appId, 'public', 'data', collectionName)
@@ -256,22 +174,19 @@ export default function DirectorBookLog() {
     
     const unsubscribe = onSnapshot(collectionPath, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
+        id: doc.id, ...doc.data(),
         receivedAt: doc.data().receivedAt?.toDate() || new Date(),
         runningNumber: doc.data().runningNumber || 0,
         status: doc.data().status || 'pending',
         note: doc.data().note || '' 
       }));
-      
       docs.sort((a, b) => b.runningNumber - a.runningNumber);
       setDocuments(docs);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching documents:", error);
+      console.error("Error fetching:", error);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [user]);
 
@@ -282,10 +197,12 @@ export default function DirectorBookLog() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!db) { alert("ไม่พบการเชื่อมต่อฐานข้อมูล"); return; }
     if (!subject.trim() || !receiverName.trim()) return;
     
     setSubmitting(true);
     try {
+      // Save receiver locally
       const trimmedName = receiverName.trim();
       if (!savedReceivers.includes(trimmedName)) {
         const newReceivers = [...savedReceivers, trimmedName].slice(-5);
@@ -294,24 +211,32 @@ export default function DirectorBookLog() {
       }
 
       const nextNumber = getNextRunningNumber();
-      
       const collectionName = 'director_submissions';
-      const collectionRef = typeof __firebase_config !== 'undefined' 
+      const collectionPath = typeof __firebase_config !== 'undefined' 
         ? collection(db, 'artifacts', appId, 'public', 'data', collectionName)
         : collection(db, collectionName);
 
-      await addDoc(collectionRef, {
-        runningNumber: nextNumber,
-        subject,
-        department,
-        urgency,
-        receiverName,
-        note,
-        status: 'pending', 
-        receivedAt: serverTimestamp(),
-        submittedBy: user.uid
-      });
+      // ✨ TIMEOUT PROTECTION: ถ้าเกิน 10 วิ ให้ตัดจบ
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Connection timed out")), 10000)
+      );
 
+      await Promise.race([
+        addDoc(collectionPath, {
+          runningNumber: nextNumber,
+          subject,
+          department,
+          urgency,
+          receiverName,
+          note,
+          status: 'pending', 
+          receivedAt: serverTimestamp(),
+          submittedBy: user?.uid || 'anonymous' // Safe check user
+        }),
+        timeoutPromise
+      ]);
+
+      // Success Reset
       setSubject('');
       setUrgency('normal');
       setNote('');
@@ -320,33 +245,19 @@ export default function DirectorBookLog() {
 
     } catch (error) {
       console.error("Error submitting:", error);
-      setErrorMsg("บันทึกไม่สำเร็จ");
+      setErrorMsg("บันทึกไม่สำเร็จ: " + error.message); // แจ้งเตือนถ้า Error
+      setTimeout(() => setErrorMsg(''), 3000);
     } finally {
-      setSubmitting(false);
+      setSubmitting(false); // ✨ GUARANTEE: ปุ่มจะกลับมาใช้ได้เสมอ
     }
   };
 
   const handleDemoFill = () => {
-    const demoSubjects = [
-      "ขออนุมัติจัดซื้อวัสดุสำนักงาน ประจำเดือนสิงหาคม",
-      "รายงานผลการดำเนินงานโครงการฝึกวิชาชีพ",
-      "ขออนุญาตลาพักผ่อน (นายสมชาย)",
-      "เชิญเป็นประธานในพิธีเปิดโครงการ",
-      "รายงานเวรยามประจำวัน"
-    ];
-    setSubject(demoSubjects[Math.floor(Math.random() * demoSubjects.length)]);
-    setDepartment(DEPARTMENTS[Math.floor(Math.random() * DEPARTMENTS.length)]);
-    setUrgency(URGENCY_LEVELS[Math.floor(Math.random() * URGENCY_LEVELS.length)].id);
-    setReceiverName("คุณดรีม");
-    setNote("เอกสารแนบ 2 ฉบับ");
+    setSubject("ขออนุมัติจัดซื้อวัสดุสำนักงาน"); setDepartment(DEPARTMENTS[0]); setUrgency('normal'); setReceiverName("คุณดรีม"); setNote("เอกสารแนบ 2 ฉบับ");
   };
-
-  const handleRemoveReceiver = (nameToRemove) => {
-    const newReceivers = savedReceivers.filter(name => name !== nameToRemove);
-    setSavedReceivers(newReceivers);
-    localStorage.setItem('director_book_log_receivers', JSON.stringify(newReceivers));
+  const handleRemoveReceiver = (name) => {
+    const newReceivers = savedReceivers.filter(n => n !== name); setSavedReceivers(newReceivers); localStorage.setItem('director_book_log_receivers', JSON.stringify(newReceivers));
   };
-
   const handleDelete = async (docId) => {
     if (!db) return;
     try {
@@ -355,52 +266,27 @@ export default function DirectorBookLog() {
         ? doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId)
         : doc(db, collectionName, docId);
       await deleteDoc(docRef);
-    } catch (error) {
-      console.error("Error deleting document:", error);
-      setErrorMsg("ลบรายการไม่สำเร็จ");
-      setTimeout(() => setErrorMsg(''), 3000);
-    }
+    } catch (error) { setErrorMsg("ลบไม่สำเร็จ"); }
   };
-
   const handleStatusToggle = async (docId, currentStatus) => {
     if (!db) return;
     let nextStatus = 'pending';
-    if (currentStatus === 'pending') nextStatus = 'signed';
-    else if (currentStatus === 'signed') nextStatus = 'returned';
-    else nextStatus = 'pending';
-
+    if (currentStatus === 'pending') nextStatus = 'signed'; else if (currentStatus === 'signed') nextStatus = 'returned'; else nextStatus = 'pending';
     try {
       const collectionName = 'director_submissions';
       const docRef = typeof __firebase_config !== 'undefined' 
         ? doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId)
         : doc(db, collectionName, docId);
-      await updateDoc(docRef, {
-        status: nextStatus
-      });
-    } catch (error) {
-      console.error("Error updating status:", error);
-    }
+      await updateDoc(docRef, { status: nextStatus });
+    } catch (error) {}
   };
 
-  // Helper functions for formatting
-  const formatTime = (date) => date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  const formatDate = (date) => date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-
-  // Badges and Handlers
-  const getUrgencyBadge = (levelId) => {
-    const level = URGENCY_LEVELS.find(l => l.id === levelId) || URGENCY_LEVELS[0];
-    return <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${level.color} print:border-black print:text-black print:bg-transparent`}>{level.label}</span>;
-  };
-
-  const getStatusBadge = (statusKey) => {
-    const status = STATUS_LEVELS[statusKey] || STATUS_LEVELS['pending'];
-    const Icon = status.icon;
-    return <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer select-none transition-all hover:shadow-md hover:scale-105 active:scale-95 ${status.color}`}><Icon size={14} />{status.label}</div>;
-  };
-
+  const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(l => l.id === id) || URGENCY_LEVELS[0]; return <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${l.color} print:border-black print:text-black print:bg-transparent`}>{l.label}</span>; };
+  const getStatusBadge = (key) => { const s = STATUS_LEVELS[key] || STATUS_LEVELS['pending']; const I = s.icon; return <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer select-none transition-all hover:shadow-md hover:scale-105 active:scale-95 ${s.color}`}><I size={14} />{s.label}</div>; };
   const handlePrint = () => window.print();
-
-  const handleExportExcel = () => {
+  const handleExportExcel = () => { /* same excel logic */
     const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงานเจ้าของเรื่อง,ผู้รับ,หมายเหตุ,สถานะ\n";
     const csvRows = filteredDocs.map(doc => {
       const noteText = `"${(doc.note || '').replace(/"/g, '""')}"`;
@@ -418,83 +304,30 @@ export default function DirectorBookLog() {
     document.body.removeChild(link);
   };
 
-  const filteredDocs = documents.filter(docItem => {
-    const matchesTerm = 
-      docItem.subject.toLowerCase().includes(filterTerm.toLowerCase()) || 
-      docItem.department.toLowerCase().includes(filterTerm.toLowerCase()) ||
-      docItem.receiverName.toLowerCase().includes(filterTerm.toLowerCase()) ||
-      (docItem.note && docItem.note.toLowerCase().includes(filterTerm.toLowerCase())) ||
-      (docItem.runningNumber && docItem.runningNumber.toString().includes(filterTerm));
-
+  const filteredDocs = documents.filter(d => {
+    const matchesTerm = d.subject.toLowerCase().includes(filterTerm.toLowerCase()) || d.department.toLowerCase().includes(filterTerm.toLowerCase()) || d.receiverName.toLowerCase().includes(filterTerm.toLowerCase()) || (d.note && d.note.toLowerCase().includes(filterTerm.toLowerCase())) || (d.runningNumber && d.runningNumber.toString().includes(filterTerm));
     let matchesDate = true;
-    if (filterDate) {
-      const d = docItem.receivedAt;
-      const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      matchesDate = ds === filterDate;
-    }
-    const matchesStatus = filterStatus === 'all' ? true : docItem.status === filterStatus;
+    if (filterDate) { const dx = d.receivedAt; const ds = `${dx.getFullYear()}-${String(dx.getMonth() + 1).padStart(2, '0')}-${String(dx.getDate()).padStart(2, '0')}`; matchesDate = ds === filterDate; }
+    const matchesStatus = filterStatus === 'all' ? true : d.status === filterStatus;
     return matchesTerm && matchesDate && matchesStatus;
   });
 
   const nextRunningNumberDisplay = getNextRunningNumber();
 
-  // ถ้า Config ไม่ถูกต้อง ให้แสดงข้อความเตือน
-  if (!app) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 text-slate-500 p-6 text-center">
-        <div>
-          <div className="bg-white p-6 rounded-2xl shadow-lg mb-4 inline-block">
-            <XCircle size={48} className="text-red-400 mx-auto mb-2" />
-            <h2 className="font-bold text-xl text-slate-700 mb-1">ยังไม่ได้ตั้งค่า Firebase</h2>
-            <p className="text-sm">กรุณาใส่ API Key ในโค้ดไฟล์ App.jsx เพื่อเริ่มใช้งาน</p>
-          </div>
-          <p className="text-xs opacity-70">หมายเหตุ: หน้านี้จะทำงานได้เมื่อใส่ Config ถูกต้องแล้วเท่านั้น</p>
-        </div>
-      </div>
-    );
-  }
+  if (!app) return <div className="p-10 text-center text-red-500 font-bold">กรุณาใส่ Firebase Config ในไฟล์ App.jsx</div>;
 
   return (
     <>
-      <style>{`
-        @media print {
-          @page { margin: 1cm; size: A4; }
-          body { -webkit-print-color-adjust: exact; }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          .print-container { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
-          .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; }
-          .print-table th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #000; padding: 8px; }
-          .print-table td { border: 1px solid #000; padding: 8px; text-align: left; vertical-align: top; }
-          .print-header { text-align: center; margin-bottom: 20px; }
-          .bg-slate-50 { background-color: white !important; }
-        }
-        .print-only { display: none; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-      `}</style>
+      <style>{`@media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #000; padding: 8px; } .print-table td { border: 1px solid #000; padding: 8px; text-align: left; vertical-align: top; } .print-header { text-align: center; margin-bottom: 20px; } .bg-slate-50 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }`}</style>
 
       <div className="min-h-screen bg-slate-50 font-sans text-slate-800 print:bg-white selection:bg-blue-100 selection:text-blue-900 pb-10">
-        {/* Printable Header */}
-        <div className="print-only print-header">
-          <h1 className="text-xl font-bold">บันทึกรับหนังสือเสนอผู้อำนวยการ</h1>
-          <p className="text-sm">ทัณฑสถานวัยหนุ่มกลาง</p>
-          <p className="text-sm mt-2">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p>
-        </div>
+        <div className="print-only print-header"><h1 className="text-xl font-bold">บันทึกรับหนังสือเสนอผู้อำนวยการ</h1><p className="text-sm">ทัณฑสถานวัยหนุ่มกลาง</p><p className="text-sm mt-2">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p></div>
 
         <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-30 no-print">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-100">
-                <BookOpen size={20} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 leading-none tracking-tight">
-                  ระบบรับหนังสือเสนอ ผอ.
-                </h1>
-                <p className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">ทัณฑสถานวัยหนุ่มกลาง</p>
-              </div>
+              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-100"><BookOpen size={20} className="text-white" /></div>
+              <div><h1 className="text-lg font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 leading-none tracking-tight">ระบบรับหนังสือเสนอ ผอ.</h1><p className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">ทัณฑสถานวัยหนุ่มกลาง</p></div>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-600 text-sm font-bold hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><Download size={16} />Excel</button>
@@ -505,7 +338,6 @@ export default function DirectorBookLog() {
         </header>
 
         <main className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 print:block print:p-0 print-container mt-4">
-          
           {/* FORM */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6 no-print">
             <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-white overflow-hidden sticky top-24 ring-1 ring-slate-100">
