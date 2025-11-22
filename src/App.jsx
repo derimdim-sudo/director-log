@@ -18,13 +18,12 @@ import {
 // ------------------------------------------------------------------
 const localFirebaseConfig = {
   // ⚠️ ใส่ API Key ของคุณที่นี่ (ห้ามลืม!)
-  apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4",
-  authDomain: "director-book-log.firebaseapp.com",
-  projectId: "director-book-log",
-  storageBucket: "director-book-log.firebasestorage.app",
-  messagingSenderId: "183084714920",
-  appId: "1:183084714920:web:d72d28e6c95bdb82002b9d",
-  measurementId: "G-ZCY2MW3KC6"
+  apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4", 
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
 };
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
