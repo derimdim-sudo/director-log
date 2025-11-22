@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
-// 🔴 ตั้งค่า FIREBASE CONFIG (ใส่ให้แล้วครับ!) 🔴
+// 🔴 ตั้งค่า FIREBASE CONFIG 🔴
 // ------------------------------------------------------------------
 const localFirebaseConfig = {
   apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4",
@@ -90,7 +90,8 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   return (
     <div className="space-y-1.5" ref={wrapperRef}>
-      {label && <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>}
+      {/* ปรับสี Label ให้เข้มขึ้น (text-slate-600) */}
+      {label && <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">{label}</label>}
       <div className="relative">
         <button
           type="button"
@@ -156,7 +157,6 @@ export default function DirectorBookLog() {
     if (!auth) return;
     signInAnonymously(auth).catch((error) => {
       console.error("Auth Error", error);
-      setErrorMsg("เชื่อมต่อระบบไม่ได้ กรุณารีเฟรช");
     });
     const saved = localStorage.getItem('director_book_log_receivers');
     if (saved) {
@@ -167,7 +167,7 @@ export default function DirectorBookLog() {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) return;
+    if (!db) return;
     const collectionName = 'director_submissions';
     const collectionPath = typeof __firebase_config !== 'undefined' 
       ? collection(db, 'artifacts', appId, 'public', 'data', collectionName)
@@ -217,7 +217,6 @@ export default function DirectorBookLog() {
         ? collection(db, 'artifacts', appId, 'public', 'data', collectionName)
         : collection(db, collectionName);
 
-      // ✨ TIMEOUT PROTECTION: ถ้าเกิน 10 วิ ให้ตัดจบ
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Connection timed out")), 10000)
       );
@@ -232,12 +231,11 @@ export default function DirectorBookLog() {
           note,
           status: 'pending', 
           receivedAt: serverTimestamp(),
-          submittedBy: user?.uid || 'anonymous' // Safe check user
+          submittedBy: user?.uid || 'anonymous' 
         }),
         timeoutPromise
       ]);
 
-      // Success Reset
       setSubject('');
       setUrgency('normal');
       setNote('');
@@ -246,10 +244,10 @@ export default function DirectorBookLog() {
 
     } catch (error) {
       console.error("Error submitting:", error);
-      setErrorMsg("บันทึกไม่สำเร็จ: " + error.message); // แจ้งเตือนถ้า Error
+      setErrorMsg("บันทึกไม่สำเร็จ: " + error.message);
       setTimeout(() => setErrorMsg(''), 3000);
     } finally {
-      setSubmitting(false); // ✨ GUARANTEE: ปุ่มจะกลับมาใช้ได้เสมอ
+      setSubmitting(false);
     }
   };
 
@@ -324,7 +322,8 @@ export default function DirectorBookLog() {
       <div className="min-h-screen bg-slate-50 font-sans text-slate-800 print:bg-white selection:bg-blue-100 selection:text-blue-900 pb-10">
         <div className="print-only print-header"><h1 className="text-xl font-bold">บันทึกรับหนังสือเสนอผู้อำนวยการ</h1><p className="text-sm">ทัณฑสถานวัยหนุ่มกลาง</p><p className="text-sm mt-2">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p></div>
 
-        <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-30 no-print">
+        {/* Header Gradient แบบ Minimal */}
+        <header className="bg-gradient-to-r from-white via-slate-50 to-blue-50/50 border-b border-slate-200 sticky top-0 z-30 no-print">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-100"><BookOpen size={20} className="text-white" /></div>
@@ -348,12 +347,14 @@ export default function DirectorBookLog() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-5">
                 <div className="flex items-center justify-center mb-4"><div className="bg-gradient-to-br from-slate-50 to-blue-50/50 px-6 py-4 rounded-xl border border-slate-100 flex flex-col items-center w-full relative overflow-hidden"><div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 to-indigo-400"></div><span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">เลขรับถัดไป</span><span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-indigo-600 tabular-nums tracking-tight">{nextRunningNumberDisplay}</span></div></div>
-                <div><label className="block text-xs font-bold text-slate-400 mb-3 ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-3">{URGENCY_LEVELS.map((level) => (<button key={level.id} type="button" onClick={() => setUrgency(level.id)} className={`text-xs py-3 px-2 rounded-xl font-bold transition-all border ${urgency === level.id ? `${level.color} ring-2 ring-offset-2 ring-slate-200 border-transparent shadow-sm` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{level.label}</button>))}</div></div>
-                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-400 ml-1">เรื่อง</label><input type="text" required value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all" placeholder="ระบุชื่อเรื่อง..." /></div>
+                
+                {/* ปรับสี Label เข้มขึ้น */}
+                <div><label className="block text-xs font-bold text-slate-600 mb-3 ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-3">{URGENCY_LEVELS.map((level) => (<button key={level.id} type="button" onClick={() => setUrgency(level.id)} className={`text-xs py-3 px-2 rounded-xl font-bold transition-all border ${urgency === level.id ? `${level.color} ring-2 ring-offset-2 ring-slate-200 border-transparent shadow-sm` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{level.label}</button>))}</div></div>
+                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-600 ml-1">เรื่อง</label><input type="text" required value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all" placeholder="ระบุชื่อเรื่อง..." /></div>
                 <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
-                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-400 ml-1">ผู้รับเอกสาร</label><div className="relative group"><input type="text" required value={receiverName} onChange={(e) => setReceiverName(e.target.value)} className="w-full pl-11 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all" placeholder="ระบุชื่อผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-slate-100 text-slate-400 rounded-md group-focus-within:bg-blue-100 group-focus-within:text-blue-500 transition-colors"><User size={14} /></div></div>
+                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-600 ml-1">ผู้รับเอกสาร</label><div className="relative group"><input type="text" required value={receiverName} onChange={(e) => setReceiverName(e.target.value)} className="w-full pl-11 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all" placeholder="ระบุชื่อผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-slate-100 text-slate-400 rounded-md group-focus-within:bg-blue-100 group-focus-within:text-blue-500 transition-colors"><User size={14} /></div></div>
                 {savedReceivers.length > 0 && (<div className="flex flex-wrap gap-2 mt-3 pl-1">{savedReceivers.map((name, i) => (<div key={i} className="inline-flex items-center bg-white border border-slate-200 hover:border-blue-300 rounded-lg px-2.5 py-1 cursor-pointer group/tag"><button type="button" onClick={() => setReceiverName(name)} className="text-[11px] font-semibold text-slate-500 hover:text-blue-600">{name}</button><button type="button" onClick={(e) => {e.stopPropagation(); handleRemoveReceiver(name);}} className="ml-2 text-slate-300 hover:text-red-400 opacity-0 group-hover/tag:opacity-100"><X size={10} /></button></div>))}</div>)}</div>
-                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-400 ml-1">หมายเหตุ</label><div className="relative group"><textarea value={note} onChange={(e) => setNote(e.target.value)} className="w-full pl-11 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all min-h-[80px] resize-none" placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-slate-100 text-slate-400 rounded-md group-focus-within:bg-amber-100 group-focus-within:text-amber-500 transition-colors"><StickyNote size={14} /></div></div></div>
+                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-600 ml-1">หมายเหตุ</label><div className="relative group"><textarea value={note} onChange={(e) => setNote(e.target.value)} className="w-full pl-11 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all min-h-[80px] resize-none" placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-slate-100 text-slate-400 rounded-md group-focus-within:bg-amber-100 group-focus-within:text-amber-500 transition-colors"><StickyNote size={14} /></div></div></div>
                 <div className="pt-2"><button type="submit" disabled={submitting} className={`w-full py-4 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all ${submitting ? 'bg-slate-400' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-blue-500/40 hover:-translate-y-0.5'}`}>{submitting ? 'กำลังบันทึก...' : <><Save size={18} /> ยืนยันลงรับ</>}</button></div>
               </form>
             </div>
