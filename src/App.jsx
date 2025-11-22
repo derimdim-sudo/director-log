@@ -14,16 +14,16 @@ import {
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
-// 🔴 ตั้งค่า FIREBASE CONFIG 🔴
+// 🔴 ตั้งค่า FIREBASE CONFIG (ใส่ให้แล้วครับ!) 🔴
 // ------------------------------------------------------------------
 const localFirebaseConfig = {
-  // ⚠️ ใส่ API Key ของคุณที่นี่ (ห้ามลืม!)
-  apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4", 
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4",
+  authDomain: "director-book-log.firebaseapp.com",
+  projectId: "director-book-log",
+  storageBucket: "director-book-log.firebasestorage.app",
+  messagingSenderId: "183084714920",
+  appId: "1:183084714920:web:d72d28e6c95bdb82002b9d",
+  measurementId: "G-ZCY2MW3KC6"
 };
 
 const firebaseConfig = typeof __firebase_config !== 'undefined' 
@@ -86,6 +86,8 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
     return typeof selected === 'string' ? selected : selected?.label;
   };
 
+  const displayLabel = getDisplayLabel();
+
   return (
     <div className="space-y-1.5" ref={wrapperRef}>
       {label && <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">{label}</label>}
@@ -97,7 +99,7 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
         >
           <div className="flex items-center gap-3 overflow-hidden">
              {Icon && <div className={`p-1 rounded-md transition-colors ${isOpen ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-400 group-hover:text-blue-500 group-hover:bg-blue-50'}`}><Icon size={16} /></div>}
-             <span className={`truncate font-medium ${!getDisplayLabel() ? 'text-slate-400' : 'text-slate-700'}`}>{getDisplayLabel() || placeholder}</span>
+             <span className={`truncate font-medium ${!displayLabel ? 'text-slate-400' : 'text-slate-700'}`}>{displayLabel || placeholder}</span>
           </div>
           <ChevronDown size={18} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-blue-500' : ''}`} />
         </button>
@@ -285,7 +287,7 @@ export default function DirectorBookLog() {
   const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(l => l.id === id) || URGENCY_LEVELS[0]; return <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${l.color} print:border-black print:text-black print:bg-transparent`}>{l.label}</span>; };
   const getStatusBadge = (key) => { const s = STATUS_LEVELS[key] || STATUS_LEVELS['pending']; const I = s.icon; return <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer select-none transition-all hover:shadow-md hover:scale-105 active:scale-95 ${s.color}`}><I size={14} />{s.label}</div>; };
   const handlePrint = () => window.print();
-  const handleExportExcel = () => { /* same excel logic */
+  const handleExportExcel = () => { 
     const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงานเจ้าของเรื่อง,ผู้รับ,หมายเหตุ,สถานะ\n";
     const csvRows = filteredDocs.map(doc => {
       const noteText = `"${(doc.note || '').replace(/"/g, '""')}"`;
