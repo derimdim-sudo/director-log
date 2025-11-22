@@ -90,7 +90,6 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   return (
     <div className="space-y-1.5" ref={wrapperRef}>
-      {/* ปรับสี Label ให้เข้มขึ้น (text-slate-600) */}
       {label && <label className="block text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">{label}</label>}
       <div className="relative">
         <button
@@ -322,17 +321,17 @@ export default function DirectorBookLog() {
       <div className="min-h-screen bg-slate-50 font-sans text-slate-800 print:bg-white selection:bg-blue-100 selection:text-blue-900 pb-10">
         <div className="print-only print-header"><h1 className="text-xl font-bold">บันทึกรับหนังสือเสนอผู้อำนวยการ</h1><p className="text-sm">ทัณฑสถานวัยหนุ่มกลาง</p><p className="text-sm mt-2">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p></div>
 
-        {/* Header Gradient แบบ Minimal */}
-        <header className="bg-gradient-to-r from-white via-slate-50 to-blue-50/50 border-b border-slate-200 sticky top-0 z-30 no-print">
+        {/* Header Gradient Updated */}
+        <header className="bg-gradient-to-r from-indigo-500 via-blue-600 to-blue-700 border-b border-indigo-700 sticky top-0 z-30 no-print shadow-md">
           <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-100"><BookOpen size={20} className="text-white" /></div>
-              <div><h1 className="text-lg font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 leading-none tracking-tight">ระบบรับหนังสือเสนอ ผอ.</h1><p className="text-[10px] text-slate-400 font-medium tracking-wide mt-1">ทัณฑสถานวัยหนุ่มกลาง</p></div>
+              <div className="bg-white/20 p-2 rounded-xl shadow-inner backdrop-blur-sm"><BookOpen size={20} className="text-white" /></div>
+              <div><h1 className="text-lg font-extrabold text-white leading-none tracking-tight drop-shadow-sm">ระบบรับหนังสือเสนอ ผอ.</h1><p className="text-[10px] text-indigo-100 font-medium tracking-wide mt-1 opacity-90">ทัณฑสถานวัยหนุ่มกลาง</p></div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-600 text-sm font-bold hover:bg-emerald-100 transition-all border border-emerald-100 shadow-sm"><Download size={16} />Excel</button>
-              <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-              <button onClick={handlePrint} className="p-2.5 rounded-full text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-all"><Printer size={20} /></button>
+              <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white text-sm font-bold hover:bg-white/30 transition-all border border-white/10 shadow-sm backdrop-blur-sm"><Download size={16} />Excel</button>
+              <div className="h-6 w-px bg-white/20 mx-1 hidden sm:block"></div>
+              <button onClick={handlePrint} className="p-2.5 rounded-full text-white/90 hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"><Printer size={20} /></button>
             </div>
           </div>
         </header>
@@ -348,7 +347,6 @@ export default function DirectorBookLog() {
               <form onSubmit={handleSubmit} className="p-6 space-y-5">
                 <div className="flex items-center justify-center mb-4"><div className="bg-gradient-to-br from-slate-50 to-blue-50/50 px-6 py-4 rounded-xl border border-slate-100 flex flex-col items-center w-full relative overflow-hidden"><div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 to-indigo-400"></div><span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">เลขรับถัดไป</span><span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-blue-600 to-indigo-600 tabular-nums tracking-tight">{nextRunningNumberDisplay}</span></div></div>
                 
-                {/* ปรับสี Label เข้มขึ้น */}
                 <div><label className="block text-xs font-bold text-slate-600 mb-3 ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-3">{URGENCY_LEVELS.map((level) => (<button key={level.id} type="button" onClick={() => setUrgency(level.id)} className={`text-xs py-3 px-2 rounded-xl font-bold transition-all border ${urgency === level.id ? `${level.color} ring-2 ring-offset-2 ring-slate-200 border-transparent shadow-sm` : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}>{level.label}</button>))}</div></div>
                 <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-600 ml-1">เรื่อง</label><input type="text" required value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-50/50 outline-none transition-all" placeholder="ระบุชื่อเรื่อง..." /></div>
                 <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
