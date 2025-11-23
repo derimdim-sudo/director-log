@@ -359,3 +359,22 @@ export default function DirectorBookLog() {
     </>
   );
 }
+{/* ------------------------------------------------------------------ */}
+      {/* 🟢 Credit: Design By Dream APL (วางมุมขวาล่าง) */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="fixed bottom-3 right-3 z-[50] pointer-events-none select-none no-print">
+        <div className="bg-black/40 backdrop-blur-md border border-white/5 px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2 group transition-all duration-500 hover:bg-black/60 hover:border-white/10 pointer-events-auto">
+           {/* จุดสีเขียวเล็กๆ กระพริบได้ ให้ดูเหมือนระบบ Online */}
+           <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+           </span>
+           <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] group-hover:text-zinc-400 transition-colors">
+              Design By <span className="text-zinc-400 group-hover:text-emerald-400 transition-colors">Dream APL</span>
+           </span>
+        </div>
+      </div>
+      
+    </> // <--- วางก่อนบรรทัดปิดนี้
+  );
+}
