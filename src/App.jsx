@@ -39,6 +39,7 @@ const DEPARTMENTS = [
   "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
+// ธีมสี: Dark Silver / Metallic
 const URGENCY_LEVELS = [
   { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-500' },
   { id: 'urgent', label: 'ด่วน', color: 'bg-orange-900/30 text-orange-400 border-orange-800/50 hover:bg-orange-900/50' },
@@ -54,9 +55,9 @@ const STATUS_LEVELS = {
 
 // --- Custom Components ---
 
-// 🎗️ Component: แถบคาดมุมขวาบน (Corner Sash)
+// 🎗️ Component: แถบคาดมุมขวาบน (Corner Sash) - ปรับสีให้เข้าธีม Dark
 const MourningSash = () => (
-  <div className="fixed top-0 right-0 z-[9999] pointer-events-none w-24 h-24 overflow-hidden no-print">
+  <div className="fixed top-0 right-0 z-[9999] pointer-events-none w-24 h-24 overflow-hidden">
     <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-[0_0_20px_rgba(0,0,0,1)] flex items-center justify-center border-b border-zinc-800/50">
        <div className="w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center shadow-inner ring-1 ring-zinc-700">
           <svg width="10" height="14" viewBox="0 0 24 24" fill="#e4e4e7" xmlns="http://www.w3.org/2000/svg">
@@ -231,11 +232,23 @@ export default function DirectorBookLog() {
 
   return (
     <>
-      <style>{`@media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; background-color: white !important; color: black !important; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f8fafc; font-weight: bold; border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 12px; color: #334155; } .print-table td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; vertical-align: top; font-size: 12px; color: #1e293b; } .print-header { text-align: center; margin-bottom: 30px; color: black; } .bg-zinc-950 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #18181b; } ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; } hover::-webkit-scrollbar-thumb { background: #52525b; }`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
+        @media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; background-color: white !important; color: black !important; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #000; padding: 8px; } .print-table td { border: 1px solid #000; padding: 8px; text-align: left; vertical-align: top; } .print-header { text-align: center; margin-bottom: 20px; } .bg-slate-50 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #18181b; } ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; } hover::-webkit-scrollbar-thumb { background: #52525b; }
+        
+        /* CSS Animation for Glowing Red Dot */
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+          50% { transform: scale(1.1); opacity: 0.8; box-shadow: 0 0 10px 10px rgba(225, 29, 72, 0); }
+        }
+        .animate-heartbeat {
+          animation: heartbeat 1.5s infinite;
+        }
+      `}</style>
       
       <MourningSash />
 
-      <div className="h-screen flex flex-col bg-zinc-950 font-sans text-zinc-200 overflow-hidden selection:bg-zinc-700 selection:text-white">
+      <div className="h-screen flex flex-col bg-zinc-950 font-sans text-zinc-200 overflow-hidden selection:bg-zinc-700 selection:text-white relative">
         
         {/* Header: Metallic Silver Gradient */}
         <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-zinc-700/50 shrink-0 z-30 shadow-lg shadow-black/50 h-16 flex items-center justify-between px-6 no-print relative overflow-hidden">
@@ -266,30 +279,31 @@ export default function DirectorBookLog() {
              </div>
 
              <div className="flex-1 overflow-y-auto p-5 space-y-5">
-               {/* Next Number Card: Metallic Look */}
-               <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-2xl border border-zinc-700/50 flex flex-col items-center relative overflow-hidden group shadow-lg">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-500 via-zinc-300 to-zinc-500 opacity-50"></div>
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-1 z-10">เลขรับถัดไป</span>
-                  <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tabular-nums tracking-tighter group-hover:scale-105 transition-transform duration-500 drop-shadow-lg z-10">{getNextRunningNumber()}</span>
-               </div>
-               
-               <div><label className="block text-[11px] font-bold text-zinc-500 mb-2 uppercase tracking-wider ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-2.5">{URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-xs py-3 rounded-xl font-semibold border transition-all duration-300 ${urgency===l.id?`${l.color} ring-1 ring-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]`:'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}>{l.label}</button>)}</div></div>
-               
-               <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">เรื่อง</label><input className="mt-1.5 w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all placeholder:text-zinc-600 font-medium text-zinc-200 shadow-inner" value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
-               
-               <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
-               
-               <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">ผู้รับเอกสาร</label><div className="relative mt-1.5 group"><input className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all font-medium text-zinc-200 shadow-inner" value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><User size={14}/></div></div>
-               {savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2.5 px-1">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg cursor-pointer text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-800 transition-all">{n}</span>)}</div>}</div>
-               
-               <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">หมายเหตุ</label><div className="relative mt-1.5 group"><textarea className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none h-20 resize-none transition-all font-medium text-zinc-200 shadow-inner" value={note} onChange={e=>setNote(e.target.value)} placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><StickyNote size={14}/></div></div></div>
+                {/* Next Number Card: Metallic Look */}
+                <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-2xl border border-zinc-700/50 flex flex-col items-center relative overflow-hidden group shadow-lg">
+                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-500 via-zinc-300 to-zinc-500 opacity-50"></div>
+                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
+                   <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-1 z-10">เลขรับถัดไป</span>
+                   <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tabular-nums tracking-tighter group-hover:scale-105 transition-transform duration-500 drop-shadow-lg z-10">{getNextRunningNumber()}</span>
+                </div>
+                
+                <div><label className="block text-[11px] font-bold text-zinc-500 mb-2 uppercase tracking-wider ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-2.5">{URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-xs py-3 rounded-xl font-semibold border transition-all duration-300 ${urgency===l.id?`${l.color} ring-1 ring-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]`:'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}>{l.label}</button>)}</div></div>
+                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">เรื่อง</label><input className="mt-1.5 w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all placeholder:text-zinc-600 font-medium text-zinc-200 shadow-inner" value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
+                
+                <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
+                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">ผู้รับเอกสาร</label><div className="relative mt-1.5 group"><input className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all font-medium text-zinc-200 shadow-inner" value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><User size={14}/></div></div>
+                {savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2.5 px-1">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg cursor-pointer text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-800 transition-all">{n}</span>)}</div>}</div>
+                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">หมายเหตุ</label><div className="relative mt-1.5 group"><textarea className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none h-20 resize-none transition-all font-medium text-zinc-200 shadow-inner" value={note} onChange={e=>setNote(e.target.value)} placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><StickyNote size={14}/></div></div></div>
              </div>
 
              {/* Form Footer: Sticky Bottom */}
              <div className="p-5 border-t border-zinc-800 bg-[#121214] shrink-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
-                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white font-bold shadow-lg flex justify-center items-center gap-2.5 transition-all duration-300 ${submitting?'bg-zinc-800 cursor-not-allowed text-zinc-500':'bg-gradient-to-r from-zinc-200 to-zinc-400 text-black hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98]'}`}>
-                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-zinc-500 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
+                {/* เปลี่ยนสีปุ่ม "ยืนยันลงรับ" ให้เห็นชัดขึ้น (สีเขียวมรกต Emerald) */}
+                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white font-bold shadow-lg flex justify-center items-center gap-2.5 transition-all duration-300 ${submitting?'bg-zinc-800 cursor-not-allowed text-zinc-500':'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98]'}`}>
+                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
                 </button>
                 
                 {showSuccess && <div className="mt-3 text-xs text-center text-emerald-400 font-bold bg-emerald-900/30 py-2.5 rounded-xl border border-emerald-800/50 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 shadow-lg"><div className="bg-emerald-900 p-0.5 rounded-full"><CheckCircle2 size={14} className="text-emerald-400"/></div> บันทึกสำเร็จ!</div>}
@@ -306,7 +320,7 @@ export default function DirectorBookLog() {
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24">
-                {loading ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-3"><div className="w-10 h-10 border-4 border-zinc-800 border-t-zinc-500 rounded-full animate-spin"></div><p className="text-sm font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 border-2 border-dashed border-zinc-800 rounded-3xl m-4"><div className="bg-zinc-900 p-4 rounded-full mb-3"><Search size={32}/></div><div className="font-bold text-lg text-zinc-500">ไม่พบรายการ</div><p className="text-sm text-zinc-700">ลองปรับเงื่อนไขการค้นหา</p></div> : 
+                {loading ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-3"><div className="w-10 h-10 border-4 border-zinc-800 border-t-zinc-500 rounded-full animate-spin"></div><p className="text-sm font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 border-2 border-dashed border-zinc-900 rounded-3xl m-4"><div className="bg-zinc-900 p-4 rounded-full mb-3"><Search size={32}/></div><div className="font-bold text-lg text-zinc-500">ไม่พบรายการ</div><p className="text-sm text-zinc-700">ลองปรับเงื่อนไขการค้นหา</p></div> : 
                   filteredDocs.map(doc => {
                     // Status styling logic
                     const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
@@ -356,19 +370,23 @@ export default function DirectorBookLog() {
           </div>
         </div>
 
-        {/* 🟢 Credit: Design By Dream APL */}
-        <div className="fixed bottom-3 right-3 z-[50] pointer-events-none select-none no-print">
-            <div className="bg-black/40 backdrop-blur-md border border-white/5 px-3 py-1.5 rounded-full shadow-2xl flex items-center gap-2 group transition-all duration-500 hover:bg-black/60 hover:border-white/10 pointer-events-auto">
-                <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
-                </span>
-                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] group-hover:text-zinc-400 transition-colors">
-                    Design By <span className="text-zinc-400 group-hover:text-emerald-400 transition-colors">Dream APL</span>
-                </span>
-            </div>
+        {/* 🟢 Credit Footer: Signature with Red Glow Effect */}
+        <div className="fixed bottom-3 right-4 z-[100] pointer-events-auto select-none no-print group">
+           <div className="bg-black/60 backdrop-blur-md border border-white/5 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 transition-all duration-500 hover:bg-black/80 hover:border-rose-900/50 cursor-default relative overflow-hidden">
+               {/* Red Glow Effect */}
+               <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-rose-500/5 blur-md"></div>
+               
+               <span className="relative flex h-2 w-2">
+                  <span className="animate-heartbeat absolute inline-flex h-full w-full rounded-full bg-rose-600 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_10px_#f43f5e]"></span>
+               </span>
+               
+               <span className="font-handwriting text-[12px] text-zinc-500 italic tracking-wider group-hover:text-zinc-300 transition-colors relative z-10" style={{ fontFamily: "'Dancing Script', cursive" }}>
+                  design By <span className="text-zinc-400 group-hover:text-rose-400 font-bold not-italic transition-colors drop-shadow-[0_0_5px_rgba(244,63,94,0.5)]">Dream APL</span>
+               </span>
+           </div>
         </div>
-</div>
+
       </div>
     </>
   );
