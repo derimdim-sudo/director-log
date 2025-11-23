@@ -6,17 +6,17 @@ import {
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
-  BookOpen, Clock, AlertCircle, CheckCircle2, 
+  BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
-  FileText, Hash, Trash2, CheckSquare, RefreshCcw, Sparkles, XCircle,
-  Calendar, Filter, Download, ChevronRight, Layers, X, StickyNote,
+  Trash2, CheckSquare, RefreshCcw, Sparkles, XCircle,
+  Calendar, Filter, Download, Layers, X, StickyNote,
   ChevronDown, Check
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
-// 🔴 ตั้งค่า FIREBASE CONFIG (ใส่ให้แล้วครับ!) 🔴
+// 🔴 FIREBASE CONFIG (ใช้งานจริง) 🔴
 // ------------------------------------------------------------------
-const localFirebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyBApk3_3eJHPrzIidDyhTOCkaOxkE90QZ4",
   authDomain: "director-book-log.firebaseapp.com",
   projectId: "director-book-log",
@@ -26,96 +26,75 @@ const localFirebaseConfig = {
   measurementId: "G-ZCY2MW3KC6"
 };
 
-const firebaseConfig = typeof __firebase_config !== 'undefined' 
-  ? JSON.parse(__firebase_config) 
-  : localFirebaseConfig;
-
-// Initialize Firebase safely
-const app = firebaseConfig.apiKey ? initializeApp(firebaseConfig) : null;
-const auth = app ? getAuth(app) : null;
-const db = app ? getFirestore(app) : null;
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = 'director-log-app'; 
 
 // --- Constants ---
 const LAST_OLD_SYSTEM_NUMBER = 339; 
 
 const DEPARTMENTS = [
-  "ฝ่ายบริหาร",
-  "ส่วนทัณฑปฏิบัติ",
-  "ส่วนปกครองผู้ต้องขัง",
-  "ส่วนรักษาการณ์",
-  "ส่วนสวัสดิการฯ",
-  "ส่วนสถานพยาบาล",
-  "ส่วนพัฒนาผู้ต้องขัง 1",
-  "ส่วนพัฒนาผู้ต้องขัง 2",
-  "หน่วยงานภายนอก/อื่นๆ"
+  "ฝ่ายบริหาร", "ส่วนทัณฑปฏิบัติ", "ส่วนปกครองผู้ต้องขัง", "ส่วนรักษาการณ์",
+  "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
-// ธีมสี: ปรับให้เข้ากับโทนแดงกรมราชทัณฑ์
 const URGENCY_LEVELS = [
-  { id: 'normal', label: 'ปกติ', color: 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100' },
-  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-50 text-orange-800 border-orange-200 hover:bg-orange-100' },
-  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-50 text-red-800 border-red-200 hover:bg-red-100' },
-  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-rose-900 text-white border-rose-900 hover:bg-rose-800 shadow-sm' } // ด่วนที่สุดต้องเด่น!
+  { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-500' },
+  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-900/30 text-orange-400 border-orange-800/50 hover:bg-orange-900/50' },
+  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-900/30 text-red-400 border-red-800/50 hover:bg-red-900/50' },
+  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-gradient-to-r from-red-900 to-rose-800 text-white border-rose-700 hover:from-red-800 hover:to-rose-700 shadow-[0_0_15px_rgba(225,29,72,0.4)]' }
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200', icon: Clock },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', icon: CheckSquare },
-  'returned': { label: 'คืนเรื่อง/แก้ไข', color: 'bg-red-50 text-red-700 ring-1 ring-red-200', icon: RefreshCcw },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-900/30 text-amber-400 border border-amber-800/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-900/30 text-red-400 border border-red-800/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
 };
 
 // --- Custom Components ---
 
+// 🎗️ Component: แถบคาดมุมขวาบน (Corner Sash) - ปรับสีให้เข้าธีม Dark
+const MourningSash = () => (
+  <div className="fixed top-0 right-0 z-[9999] pointer-events-none w-24 h-24 overflow-hidden">
+    <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-[0_0_20px_rgba(0,0,0,1)] flex items-center justify-center border-b border-zinc-800/50">
+       <div className="w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center shadow-inner ring-1 ring-zinc-700">
+          <svg width="10" height="14" viewBox="0 0 24 24" fill="#e4e4e7" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.8 1.5C9.5 1.5 7.5 3.2 7.5 5.5C7.5 7.2 8.5 8.8 9.8 9.8L7 18.5L11.8 16L16.6 18.5L13.8 9.8C15.1 8.8 16.1 7.2 16.1 5.5C16.1 3.2 14.1 1.5 11.8 1.5ZM11.8 8.5C10.1 8.5 8.8 7.2 8.8 5.5C8.8 3.8 10.1 2.5 11.8 2.5C13.5 2.5 14.8 3.8 14.8 5.5C14.8 7.2 13.5 8.5 11.8 8.5Z" />
+          </svg>
+       </div>
+    </div>
+  </div>
+);
+
 const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
-
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); }
+    document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef]);
-
-  const getDisplayLabel = () => {
-    if (!value) return null;
-    const selected = options.find(opt => (typeof opt === 'string' ? opt : opt.value) === value);
-    return typeof selected === 'string' ? selected : selected?.label;
-  };
-
-  const displayLabel = getDisplayLabel();
+  const getDisplayLabel = () => { const s = options.find(o => (typeof o === 'string' ? o : o.value) === value); return typeof s === 'string' ? s : s?.label; };
 
   return (
-    <div className="space-y-1.5" ref={wrapperRef}>
-      {label && <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide ml-1">{label}</label>}
+    <div className="space-y-1.5 relative" ref={wrapperRef}>
+      {label && <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider ml-1">{label}</label>}
       <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className={`w-full px-4 py-3 bg-white border rounded-xl text-sm flex items-center justify-between transition-all duration-200 group ${isOpen ? 'border-rose-800 ring-4 ring-rose-100 shadow-md' : 'border-slate-300 hover:border-rose-800 hover:bg-slate-50'}`}
-        >
+        <button type="button" onClick={() => setIsOpen(!isOpen)} className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-300 group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && <div className={`p-1 rounded-md transition-colors ${isOpen ? 'bg-rose-800 text-white' : 'bg-slate-100 text-slate-500 group-hover:text-rose-800 group-hover:bg-rose-50'}`}><Icon size={16} /></div>}
-             <span className={`truncate font-medium ${!displayLabel ? 'text-slate-400' : 'text-slate-800'}`}>{displayLabel || placeholder}</span>
+             {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
+             <span className={`truncate font-medium ${!getDisplayLabel() ? 'text-zinc-600' : 'text-zinc-300'}`}>{getDisplayLabel() || placeholder}</span>
           </div>
-          <ChevronDown size={18} className={`text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-180 text-rose-800' : ''}`} />
+          <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
         </button>
         {isOpen && (
-          <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-200/50 max-h-60 overflow-auto animate-in fade-in zoom-in-95 duration-200 origin-top p-1.5">
-            {options.map((opt, idx) => {
-              const optValue = typeof opt === 'string' ? opt : opt.value;
-              const optLabel = typeof opt === 'string' ? opt : opt.label;
-              const isSelected = optValue === value;
-              return (
-                <div key={idx} onClick={() => { onChange(optValue); setIsOpen(false); }} className={`px-4 py-2.5 text-sm rounded-lg cursor-pointer transition-all flex items-center justify-between mb-0.5 last:mb-0 ${isSelected ? 'bg-rose-50 text-rose-900 font-semibold border border-rose-100' : 'text-slate-600 hover:bg-slate-50 hover:text-rose-800'}`}>
-                  <span>{optLabel}</span> {isSelected && <Check size={16} className="text-rose-800" />}
-                </div>
-              );
-            })}
+          <div className="absolute z-[9999] w-full mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 origin-top">
+            {options.map((opt, idx) => (
+              <div key={idx} onClick={() => { onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold shadow-inner':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
+                <span>{typeof opt === 'string' ? opt : opt.label}</span>
+                {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-emerald-400" />}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -125,12 +104,10 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
 const DeleteButton = ({ onDelete }) => {
   const [confirming, setConfirming] = useState(false);
-  useEffect(() => {
-    if (confirming) { const timer = setTimeout(() => setConfirming(false), 3000); return () => clearTimeout(timer); }
-  }, [confirming]);
+  useEffect(() => { if(confirming){const t=setTimeout(()=>setConfirming(false),3000);return()=>clearTimeout(t)}},[confirming]);
   const handleClick = (e) => { e.stopPropagation(); if (confirming) { onDelete(); setConfirming(false); } else { setConfirming(true); } };
-  if (confirming) return <button onClick={handleClick} className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1.5 rounded-lg shadow-lg shadow-red-200 z-20 text-xs font-bold animate-in fade-in zoom-in duration-200 flex items-center gap-1 hover:bg-red-700 transition-all"><Trash2 size={14} /> ยืนยัน?</button>;
-  return <button onClick={handleClick} className="absolute top-4 right-4 text-slate-300 bg-white/80 backdrop-blur-sm hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-all duration-200 z-10 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 border border-transparent hover:border-red-100"><Trash2 size={16} /></button>;
+  if (confirming) return <button onClick={handleClick} className="bg-red-900/80 border border-red-700 text-red-200 px-3 py-1.5 rounded-lg shadow-[0_0_10px_rgba(220,38,38,0.4)] text-[10px] font-bold transition-all mt-2 whitespace-nowrap hover:bg-red-800 hover:text-white">ยืนยันลบ</button>;
+  return <button onClick={handleClick} className="text-zinc-600 hover:text-red-400 p-2 rounded-lg transition-all mt-auto hover:bg-red-900/20"><Trash2 size={16}/></button>;
 };
 
 // --- Main App ---
@@ -154,135 +131,75 @@ export default function DirectorBookLog() {
   const [filterStatus, setFilterStatus] = useState('all'); 
 
   useEffect(() => {
-    if (!auth) return;
-    signInAnonymously(auth).catch((error) => {
-      console.error("Auth Error", error);
-    });
+    signInAnonymously(auth).catch((err) => console.error(err));
     const saved = localStorage.getItem('director_book_log_receivers');
-    if (saved) {
-      try { setSavedReceivers(JSON.parse(saved)); } catch (e) {}
-    }
-    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsubscribe();
+    if (saved) try { setSavedReceivers(JSON.parse(saved)); } catch (e) {}
+    return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
   useEffect(() => {
     if (!db) return;
-    const collectionName = 'director_submissions';
-    const collectionPath = typeof __firebase_config !== 'undefined' 
-      ? collection(db, 'artifacts', appId, 'public', 'data', collectionName)
-      : collection(db, collectionName);
-    
-    const unsubscribe = onSnapshot(collectionPath, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({
-        id: doc.id, ...doc.data(),
-        receivedAt: doc.data().receivedAt?.toDate() || new Date(),
-        runningNumber: doc.data().runningNumber || 0,
-        status: doc.data().status || 'pending',
-        note: doc.data().note || '' 
-      }));
-      docs.sort((a, b) => b.runningNumber - a.runningNumber);
+    const q = collection(db, 'director_submissions');
+    return onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), receivedAt: doc.data().receivedAt?.toDate() || new Date() }));
+      docs.sort((a, b) => (b.runningNumber || 0) - (a.runningNumber || 0));
       setDocuments(docs);
       setLoading(false);
-    }, (error) => {
-      console.error("Error fetching:", error);
-      setLoading(false);
     });
-    return () => unsubscribe();
   }, [user]);
 
-  const getNextRunningNumber = () => {
-    const maxInDocs = documents.reduce((max, doc) => Math.max(max, doc.runningNumber || 0), 0);
-    return Math.max(maxInDocs, LAST_OLD_SYSTEM_NUMBER) + 1;
-  };
+  const getNextRunningNumber = () => Math.max(documents.reduce((max, doc) => Math.max(max, doc.runningNumber || 0), 0), LAST_OLD_SYSTEM_NUMBER) + 1;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!db) { alert("ไม่พบการเชื่อมต่อฐานข้อมูล"); return; }
-    if (!subject.trim() || !receiverName.trim()) return;
+    setErrorMsg(''); 
+    
+    if (!subject.trim()) { setErrorMsg("⚠️ กรุณากรอกชื่อเรื่องครับ"); return; }
+    if (!receiverName.trim()) { setErrorMsg("⚠️ กรุณากรอกชื่อผู้รับครับ"); return; }
+    if (!db) { setErrorMsg("⚠️ ไม่พบการเชื่อมต่อฐานข้อมูล"); return; }
     
     setSubmitting(true);
     try {
       const trimmedName = receiverName.trim();
       if (!savedReceivers.includes(trimmedName)) {
-        const newReceivers = [...savedReceivers, trimmedName].slice(-5);
-        setSavedReceivers(newReceivers);
-        localStorage.setItem('director_book_log_receivers', JSON.stringify(newReceivers));
+        const newRecs = [...savedReceivers, trimmedName].slice(-5);
+        setSavedReceivers(newRecs);
+        localStorage.setItem('director_book_log_receivers', JSON.stringify(newRecs));
       }
-
-      const nextNumber = getNextRunningNumber();
-      const collectionName = 'director_submissions';
-      const collectionPath = typeof __firebase_config !== 'undefined' 
-        ? collection(db, 'artifacts', appId, 'public', 'data', collectionName)
-        : collection(db, collectionName);
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Connection timed out")), 10000)
-      );
-
+      const nextNum = getNextRunningNumber();
+      
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000));
+      
       await Promise.race([
-        addDoc(collectionPath, {
-          runningNumber: nextNumber,
-          subject,
-          department,
-          urgency,
-          receiverName,
-          note,
-          status: 'pending', 
-          receivedAt: serverTimestamp(),
-          submittedBy: user?.uid || 'anonymous' 
-        }),
-        timeoutPromise
+        addDoc(collection(db, 'director_submissions'), {
+          runningNumber: nextNum, subject, department, urgency, receiverName, note, 
+          status: 'pending', receivedAt: serverTimestamp(), submittedBy: user?.uid || 'anon'
+        }), timeoutPromise
       ]);
 
-      setSubject('');
-      setUrgency('normal');
-      setNote('');
-      setShowSuccess(true);
+      setSubject(''); 
+      setUrgency('normal'); 
+      setNote(''); 
+      setShowSuccess(true); 
       setTimeout(() => setShowSuccess(false), 3000);
-
-    } catch (error) {
-      console.error("Error submitting:", error);
-      setErrorMsg("บันทึกไม่สำเร็จ: " + error.message);
-      setTimeout(() => setErrorMsg(''), 3000);
-    } finally {
-      setSubmitting(false);
+    } catch (err) { 
+      console.error(err);
+      setErrorMsg("บันทึกไม่สำเร็จ: " + err.message); 
+    } finally { 
+      setSubmitting(false); 
     }
   };
 
-  const handleDemoFill = () => {
-    setSubject("ขออนุมัติจัดซื้อวัสดุสำนักงาน"); setDepartment(DEPARTMENTS[0]); setUrgency('normal'); setReceiverName("คุณดรีม"); setNote("เอกสารแนบ 2 ฉบับ");
+  const handleStatusToggle = async (docId, status) => {
+    const next = status === 'pending' ? 'signed' : status === 'signed' ? 'returned' : 'pending';
+    try { await updateDoc(doc(db, 'director_submissions', docId), { status: next }); } catch(e){}
   };
-  const handleRemoveReceiver = (name) => {
-    const newReceivers = savedReceivers.filter(n => n !== name); setSavedReceivers(newReceivers); localStorage.setItem('director_book_log_receivers', JSON.stringify(newReceivers));
-  };
-  const handleDelete = async (docId) => {
-    if (!db) return;
-    try {
-      const collectionName = 'director_submissions';
-      const docRef = typeof __firebase_config !== 'undefined' 
-        ? doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId)
-        : doc(db, collectionName, docId);
-      await deleteDoc(docRef);
-    } catch (error) { setErrorMsg("ลบไม่สำเร็จ"); }
-  };
-  const handleStatusToggle = async (docId, currentStatus) => {
-    if (!db) return;
-    let nextStatus = 'pending';
-    if (currentStatus === 'pending') nextStatus = 'signed'; else if (currentStatus === 'signed') nextStatus = 'returned'; else nextStatus = 'pending';
-    try {
-      const collectionName = 'director_submissions';
-      const docRef = typeof __firebase_config !== 'undefined' 
-        ? doc(db, 'artifacts', appId, 'public', 'data', collectionName, docId)
-        : doc(db, collectionName, docId);
-      await updateDoc(docRef, { status: nextStatus });
-    } catch (error) {}
-  };
+  const handleDelete = async (id) => { try { await deleteDoc(doc(db, 'director_submissions', id)); } catch(e){} };
 
-  const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(l => l.id === id) || URGENCY_LEVELS[0]; return <span className={`px-3 py-1 rounded-lg text-xs font-bold border ${l.color} print:border-black print:text-black print:bg-transparent`}>{l.label}</span>; };
-  const getStatusBadge = (key) => { const s = STATUS_LEVELS[key] || STATUS_LEVELS['pending']; const I = s.icon; return <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold cursor-pointer select-none transition-all hover:shadow-md hover:scale-105 active:scale-95 ${s.color}`}><I size={14} />{s.label}</div>; };
+  const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all shadow-sm ${l.color}`}>{l.label}</span> };
+  const getStatusBadge = (key) => { const s = STATUS_LEVELS[key] || STATUS_LEVELS['pending']; const I = s.icon; return <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer select-none transition-all hover:shadow-[0_0_10px_rgba(255,255,255,0.1)] hover:scale-105 active:scale-95 whitespace-nowrap ${s.color}`}><I size={14} />{s.label}</div>; };
   const handlePrint = () => window.print();
   const handleExportExcel = () => { 
     const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงานเจ้าของเรื่อง,ผู้รับ,หมายเหตุ,สถานะ\n";
@@ -303,107 +220,141 @@ export default function DirectorBookLog() {
   };
 
   const filteredDocs = documents.filter(d => {
-    const matchesTerm = d.subject.toLowerCase().includes(filterTerm.toLowerCase()) || d.department.toLowerCase().includes(filterTerm.toLowerCase()) || d.receiverName.toLowerCase().includes(filterTerm.toLowerCase()) || (d.note && d.note.toLowerCase().includes(filterTerm.toLowerCase())) || (d.runningNumber && d.runningNumber.toString().includes(filterTerm));
+    const term = filterTerm.toLowerCase();
+    const matchesTerm = d.subject.toLowerCase().includes(term) || d.department.toLowerCase().includes(term) || (d.runningNumber+'').includes(term);
     let matchesDate = true;
-    if (filterDate) { const dx = d.receivedAt; const ds = `${dx.getFullYear()}-${String(dx.getMonth() + 1).padStart(2, '0')}-${String(dx.getDate()).padStart(2, '0')}`; matchesDate = ds === filterDate; }
-    const matchesStatus = filterStatus === 'all' ? true : d.status === filterStatus;
-    return matchesTerm && matchesDate && matchesStatus;
+    if (filterDate) { const dx=d.receivedAt; matchesDate = `${dx.getFullYear()}-${String(dx.getMonth()+1).padStart(2,'0')}-${String(dx.getDate()).padStart(2,'0')}` === filterDate; }
+    return matchesTerm && matchesDate && (filterStatus === 'all' || d.status === filterStatus);
   });
 
   const nextRunningNumberDisplay = getNextRunningNumber();
 
-  if (!app) return <div className="p-10 text-center text-red-500 font-bold">กรุณาใส่ Firebase Config ในไฟล์ App.jsx</div>;
-
   return (
     <>
-      <style>{`@media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #000; padding: 8px; } .print-table td { border: 1px solid #000; padding: 8px; text-align: left; vertical-align: top; } .print-header { text-align: center; margin-bottom: 20px; } .bg-slate-50 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }`}</style>
+      <style>{`@media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; background-color: white !important; color: black !important; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f8fafc; font-weight: bold; border: 1px solid #e2e8f0; padding: 12px; text-align: left; font-size: 12px; color: #334155; } .print-table td { border: 1px solid #e2e8f0; padding: 12px; text-align: left; vertical-align: top; font-size: 12px; color: #1e293b; } .print-header { text-align: center; margin-bottom: 30px; color: black; } .bg-zinc-950 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #18181b; } ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; } hover::-webkit-scrollbar-thumb { background: #52525b; }`}</style>
+      
+      <MourningSash />
 
-      <div className="min-h-screen bg-slate-50 font-sans text-slate-800 print:bg-white selection:bg-rose-100 selection:text-rose-900 pb-10">
-        <div className="print-only print-header"><h1 className="text-xl font-bold">บันทึกรับหนังสือเสนอผู้อำนวยการ</h1><p className="text-sm">ทัณฑสถานวัยหนุ่มกลาง</p><p className="text-sm mt-2">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p></div>
-
-        {/* 👑 Header Gradient: ธีมกรมราชทัณฑ์ (แดงเลือดหมู - น้ำตาลทอง) */}
-        <header className="bg-gradient-to-r from-[#8B0000] via-[#A52A2A] to-[#800000] border-b-4 border-[#FFD700] sticky top-0 z-30 no-print shadow-md">
-          <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/10 p-2 rounded-full shadow-inner backdrop-blur-sm ring-1 ring-white/20"><BookOpen size={20} className="text-[#FFD700]" /></div>
-              <div><h1 className="text-lg font-extrabold text-white leading-none tracking-wide drop-shadow-md" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.3)' }}>ระบบรับหนังสือเสนอ ผอ.</h1><p className="text-[10px] text-yellow-100 font-medium tracking-wider mt-1 opacity-90">ทัณฑสถานวัยหนุ่มกลาง</p></div>
+      <div className="h-screen flex flex-col bg-zinc-950 font-sans text-zinc-200 overflow-hidden selection:bg-zinc-700 selection:text-white">
+        
+        {/* Header: Metallic Silver Gradient */}
+        <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-zinc-700/50 shrink-0 z-30 shadow-lg shadow-black/50 h-16 flex items-center justify-between px-6 no-print relative overflow-hidden">
+          {/* Glossy effect overlay */}
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
+          
+          <div className="flex items-center gap-3 z-10">
+            <div className="bg-gradient-to-br from-zinc-700 to-black p-2 rounded-xl shadow-[0_0_10px_rgba(255,255,255,0.1)] border border-zinc-600"><BookOpen size={20} className="text-zinc-300" /></div>
+            <div>
+              <h1 className="text-lg font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400 leading-none tracking-tight drop-shadow-sm">ระบบรับหนังสือเสนอ ผอ.</h1>
+              <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-1">ทัณฑสถานวัยหนุ่มกลาง</p>
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white text-sm font-bold hover:bg-white/20 transition-all border border-white/10 shadow-sm backdrop-blur-sm"><Download size={16} />Excel</button>
-              <div className="h-6 w-px bg-white/20 mx-1 hidden sm:block"></div>
-              <button onClick={handlePrint} className="p-2.5 rounded-full text-white/90 hover:bg-white/20 hover:text-white transition-all backdrop-blur-sm"><Printer size={20} /></button>
-            </div>
+          </div>
+          <div className="flex gap-3 pr-12 z-10">
+             <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs font-bold hover:bg-zinc-700 hover:text-white hover:border-zinc-500 transition-all shadow-lg"><Download size={16}/> Excel</button>
+             <button onClick={()=>window.print()} className="p-2.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-700 transition-all shadow-lg"><Printer size={18} /></button>
           </div>
         </header>
 
-        <main className="max-w-6xl mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 print:block print:p-0 print-container mt-4">
-          {/* FORM */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-6 no-print">
-            <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 border border-white overflow-hidden sticky top-24 ring-1 ring-slate-100">
-              <div className="bg-gradient-to-r from-slate-50 to-white px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-2.5"><div className="bg-rose-50 p-1.5 rounded-lg text-rose-800 shadow-sm border border-rose-100"><PenTool size={16} /></div><h2 className="font-bold text-slate-800">ลงรับหนังสือใหม่</h2></div>
-                <button type="button" onClick={handleDemoFill} className="text-[10px] bg-white border border-slate-200 text-slate-500 px-3 py-1.5 rounded-full hover:bg-rose-50 hover:text-rose-800 flex items-center gap-1.5 transition-all shadow-sm font-medium"><Sparkles size={12} className="text-amber-500" /> Demo</button>
-              </div>
-              <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                <div className="flex items-center justify-center mb-4"><div className="bg-gradient-to-br from-slate-50 to-rose-50/50 px-6 py-4 rounded-xl border border-slate-100 flex flex-col items-center w-full relative overflow-hidden"><div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-[#8B0000] to-[#A52A2A]"></div><span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">เลขรับถัดไป</span><span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-[#8B0000] to-[#A52A2A] tabular-nums tracking-tight">{nextRunningNumberDisplay}</span></div></div>
+        {/* Content Area */}
+        <div className="flex-1 flex overflow-hidden">
+          
+          {/* Left Panel (Form): Dark Metallic Panel */}
+          <div className="w-[380px] min-w-[380px] bg-[#121214] border-r border-zinc-800 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.5)] z-20 no-print relative">
+             <div className="p-5 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm flex justify-between items-center shrink-0 sticky top-0">
+               <h2 className="font-bold text-zinc-300 flex items-center gap-2.5 text-sm"><div className="bg-zinc-800 p-1.5 rounded-lg text-zinc-400 border border-zinc-700"><PenTool size={16}/></div> ลงรับหนังสือใหม่</h2>
+               <button onClick={() => { setSubject("ขออนุมัติจัดซื้อ"); setDepartment(DEPARTMENTS[0]); setReceiverName("คุณดรีม"); }} className="text-[10px] bg-zinc-800/50 border border-zinc-700 text-zinc-500 px-3 py-1.5 rounded-full hover:bg-zinc-700 hover:text-white hover:border-zinc-500 transition-all">Demo</button>
+             </div>
+
+             <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                {/* Next Number Card: Metallic Look */}
+                <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-2xl border border-zinc-700/50 flex flex-col items-center relative overflow-hidden group shadow-lg">
+                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-500 via-zinc-300 to-zinc-500 opacity-50"></div>
+                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
+                   <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-1 z-10">เลขรับถัดไป</span>
+                   <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tabular-nums tracking-tighter group-hover:scale-105 transition-transform duration-500 drop-shadow-lg z-10">{getNextRunningNumber()}</span>
+                </div>
                 
-                <div><label className="block text-xs font-bold text-slate-700 mb-3 ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-3">{URGENCY_LEVELS.map((level) => (<button key={level.id} type="button" onClick={() => setUrgency(level.id)} className={`text-xs py-3 px-2 rounded-xl font-bold transition-all border ${urgency === level.id ? `${level.color} ring-2 ring-offset-2 ring-rose-200 border-transparent shadow-sm` : 'bg-white border-slate-300 text-slate-500 hover:bg-slate-50 hover:border-rose-800 hover:text-rose-800'}`}>{level.label}</button>))}</div></div>
-                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-700 ml-1">เรื่อง</label><input type="text" required value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm focus:border-rose-800 focus:ring-4 focus:ring-rose-50 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="ระบุชื่อเรื่อง..." /></div>
+                <div><label className="block text-[11px] font-bold text-zinc-500 mb-2 uppercase tracking-wider ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-2.5">{URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-xs py-3 rounded-xl font-semibold border transition-all duration-300 ${urgency===l.id?`${l.color} ring-1 ring-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]`:'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}>{l.label}</button>)}</div></div>
+                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">เรื่อง</label><input className="mt-1.5 w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all placeholder:text-zinc-600 font-medium text-zinc-200 shadow-inner" value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
+                
                 <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
-                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-700 ml-1">ผู้รับเอกสาร</label><div className="relative group"><input type="text" required value={receiverName} onChange={(e) => setReceiverName(e.target.value)} className="w-full pl-11 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm focus:border-rose-800 focus:ring-4 focus:ring-rose-50 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400" placeholder="ระบุชื่อผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-slate-100 text-slate-400 rounded-md group-focus-within:bg-rose-100 group-focus-within:text-rose-800 transition-colors"><User size={14} /></div></div>
-                {savedReceivers.length > 0 && (<div className="flex flex-wrap gap-2 mt-3 pl-1">{savedReceivers.map((name, i) => (<div key={i} className="inline-flex items-center bg-white border border-slate-200 hover:border-rose-300 rounded-lg px-2.5 py-1 cursor-pointer group/tag"><button type="button" onClick={() => setReceiverName(name)} className="text-[11px] font-semibold text-slate-500 hover:text-rose-800">{name}</button><button type="button" onClick={(e) => {e.stopPropagation(); handleRemoveReceiver(name);}} className="ml-2 text-slate-300 hover:text-red-600 opacity-0 group-hover/tag:opacity-100"><X size={10} /></button></div>))}</div>)}</div>
-                <div className="space-y-1.5"><label className="block text-xs font-bold text-slate-700 ml-1">หมายเหตุ</label><div className="relative group"><textarea value={note} onChange={(e) => setNote(e.target.value)} className="w-full pl-11 px-4 py-3 bg-white border border-slate-300 rounded-xl text-sm focus:border-rose-800 focus:ring-4 focus:ring-rose-50 outline-none transition-all min-h-[80px] resize-none font-medium text-slate-800 placeholder:text-slate-400" placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-slate-100 text-slate-400 rounded-md group-focus-within:bg-amber-100 group-focus-within:text-amber-600 transition-colors"><StickyNote size={14} /></div></div></div>
-                <div className="pt-2"><button type="submit" disabled={submitting} className={`w-full py-4 px-4 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 transition-all ${submitting ? 'bg-slate-400' : 'bg-gradient-to-r from-[#8B0000] to-[#A52A2A] hover:shadow-rose-900/40 hover:-translate-y-0.5'}`}>{submitting ? 'กำลังบันทึก...' : <><Save size={18} /> ยืนยันลงรับ</>}</button></div>
-              </form>
-            </div>
-            {showSuccess && <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-200 flex items-center gap-3 shadow-sm"><CheckCircle2 size={20} className="text-emerald-600" /><p className="font-bold text-sm">สำเร็จ!</p></div>}
-            {errorMsg && <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 flex items-center gap-3 shadow-sm"><XCircle size={20} className="text-red-600" /><p className="font-bold text-sm">{errorMsg}</p></div>}
+                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">ผู้รับเอกสาร</label><div className="relative mt-1.5 group"><input className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all font-medium text-zinc-200 shadow-inner" value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><User size={14}/></div></div>
+                {savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2.5 px-1">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg cursor-pointer text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-800 transition-all">{n}</span>)}</div>}</div>
+                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">หมายเหตุ</label><div className="relative mt-1.5 group"><textarea className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none h-20 resize-none transition-all font-medium text-zinc-200 shadow-inner" value={note} onChange={e=>setNote(e.target.value)} placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><StickyNote size={14}/></div></div></div>
+             </div>
+
+             {/* Form Footer: Sticky Bottom */}
+             <div className="p-5 border-t border-zinc-800 bg-[#121214] shrink-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
+                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white font-bold shadow-lg flex justify-center items-center gap-2.5 transition-all duration-300 ${submitting?'bg-zinc-800 cursor-not-allowed text-zinc-500':'bg-gradient-to-r from-zinc-200 to-zinc-400 text-black hover:shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98]'}`}>
+                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-zinc-500 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
+                </button>
+                
+                {showSuccess && <div className="mt-3 text-xs text-center text-emerald-400 font-bold bg-emerald-900/30 py-2.5 rounded-xl border border-emerald-800/50 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 shadow-lg"><div className="bg-emerald-900 p-0.5 rounded-full"><CheckCircle2 size={14} className="text-emerald-400"/></div> บันทึกสำเร็จ!</div>}
+                {errorMsg && <div className="mt-3 text-xs text-center text-red-400 font-bold bg-red-900/30 py-2.5 rounded-xl border border-red-800/50 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 shadow-lg"><XCircle size={16}/> {errorMsg}</div>}
+             </div>
           </div>
 
-          {/* LIST */}
-          <div className="lg:col-span-7 xl:col-span-8 print:w-full">
-             <div className="flex flex-col gap-5 mb-8 no-print">
-               <div className="flex items-center gap-3 text-slate-800"><div className="bg-white p-2.5 rounded-2xl shadow-sm border border-slate-100 text-rose-800"><Layers size={24} /></div><div><h2 className="font-bold text-xl text-slate-800">รายการรับวันนี้</h2><p className="text-xs text-slate-500 font-medium mt-0.5">{filteredDocs.length} รายการ</p></div></div>
-               <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-1 group"><Search size={18} className="absolute left-4 top-3 text-slate-400 group-focus-within:text-rose-800 transition-colors" /><input type="text" placeholder="ค้นหา..." value={filterTerm} onChange={(e) => setFilterTerm(e.target.value)} className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-50/50 rounded-xl focus:bg-white focus:ring-2 focus:ring-rose-100 outline-none transition-all font-medium text-slate-700" /></div>
-                  <div className="relative w-full sm:w-auto min-w-[160px] group"><Calendar size={18} className="absolute left-4 top-3 text-slate-400 pointer-events-none group-focus-within:text-rose-800 transition-colors" /><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-50/50 rounded-xl focus:bg-white focus:ring-2 focus:ring-rose-100 outline-none text-slate-600 font-medium cursor-pointer" /></div>
-                  <div className="w-full sm:w-48"><CustomSelect value={filterStatus} options={[{ value: 'all', label: 'ทุกสถานะ' }, { value: 'pending', label: 'รอเสนอ' }, { value: 'signed', label: 'เซ็นแล้ว' }, { value: 'returned', label: 'คืนเรื่อง' }]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ" /></div>
-               </div>
+          {/* Right Panel (List) */}
+          <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden relative">
+             {/* Filters Bar */}
+             <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-xl flex gap-3 shrink-0 items-center overflow-x-auto pr-16 shadow-lg">
+                <div className="relative flex-1 min-w-[200px] group"><Search size={18} className="absolute left-3.5 top-2.5 text-zinc-500 group-focus-within:text-white transition-colors"/><input className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-900 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition-all shadow-sm text-zinc-200 font-medium placeholder:text-zinc-600" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
+                <div className="relative min-w-[160px] group"><Calendar size={18} className="absolute left-3.5 top-2.5 text-zinc-500 group-focus-within:text-white transition-colors"/><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-900 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-500 focus:border-zinc-500 outline-none text-zinc-400 font-medium cursor-pointer shadow-sm [color-scheme:dark]" /></div>
              </div>
 
-             <div className="print-only">
-                <table className="print-table w-full">
-                  <thead><tr className="bg-gray-200"><th>เลขรับ</th><th>วัน/เวลา</th><th>ความเร่งด่วน</th><th>เรื่อง</th><th>หน่วยงาน</th><th>หมายเหตุ</th><th>สถานะ</th></tr></thead>
-                  <tbody>{filteredDocs.map((docItem) => (<tr key={docItem.id}><td className="text-center font-bold">{docItem.runningNumber}</td><td>{formatDate(docItem.receivedAt)}<br/>{formatTime(docItem.receivedAt)}</td><td>{URGENCY_LEVELS.find(l => l.id === docItem.urgency)?.label}</td><td>{docItem.subject}</td><td>{docItem.department}<br/>({docItem.receiverName})</td><td>{docItem.note || '-'}</td><td>{STATUS_LEVELS[docItem.status]?.label}</td></tr>))}</tbody>
-                </table>
-             </div>
-
-             <div className="no-print space-y-4">
-               {loading ? <div className="flex flex-col items-center justify-center py-20 text-slate-300"><div className="w-12 h-12 border-4 border-slate-200 border-t-rose-500 rounded-full animate-spin mb-4"></div><p>กำลังโหลด...</p></div> : filteredDocs.length === 0 ? <div className="bg-white rounded-2xl shadow-sm border-2 border-dashed border-slate-200 p-16 text-center"><Search size={32} className="text-slate-300 mx-auto mb-4" /><h3 className="text-slate-600 font-bold">ไม่พบรายการ</h3></div> : (
-                 <div className="grid grid-cols-1 gap-4">
-                   {filteredDocs.map((docItem) => (
-                     <div key={docItem.id} className="bg-white rounded-2xl p-1 pr-5 shadow-sm border border-slate-100 hover:shadow-xl hover:border-rose-200 transition-all duration-300 group relative overflow-hidden">
-                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${docItem.urgency === 'most_urgent' ? 'bg-[#8B0000]' : docItem.urgency === 'very_urgent' ? 'bg-red-600' : docItem.urgency === 'urgent' ? 'bg-orange-500' : 'bg-slate-300'}`}></div>
-                        <div className="flex items-start gap-4 p-4 pl-5">
-                            <div className="flex flex-col items-center justify-center min-w-[64px]"><div className="bg-slate-50 text-slate-700 w-16 h-16 rounded-xl flex items-center justify-center border border-slate-200/60 shadow-inner mb-1.5"><span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-[#8B0000] to-[#A52A2A]">{docItem.runningNumber}</span></div><span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">เลขรับ</span></div>
-                            <div className="flex-1 min-w-0 pt-0.5">
-                                <div className="flex flex-wrap items-center gap-2 mb-2">{getUrgencyBadge(docItem.urgency)}<span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100"><Clock size={12} /> {formatDate(docItem.receivedAt)} • {formatTime(docItem.receivedAt)} น.</span></div>
-                                <h3 className="font-bold text-slate-800 text-lg leading-snug mb-2.5 group-hover:text-[#8B0000] transition-colors">{docItem.subject}</h3>
-                                {docItem.note && (<div className="flex items-start gap-2.5 bg-amber-50 text-amber-900 text-sm px-3.5 py-2.5 rounded-xl border border-amber-100 mb-3.5"><StickyNote size={16} className="shrink-0 mt-0.5 text-amber-600" /><span><span className="font-bold">หมายเหตุ:</span> {docItem.note}</span></div>)}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3.5 border-t border-slate-50/80">
-                                    <div className="flex flex-col gap-1"><div className="flex items-center gap-2 text-sm font-medium text-slate-600"><Building2 size={14} className="text-slate-400" /><span className="truncate">{docItem.department}</span></div><div className="flex items-center gap-2 text-xs text-slate-500 font-medium"><User size={12} /> ผู้รับ: {docItem.receiverName}</div></div>
-                                    <div onClick={() => handleStatusToggle(docItem.id, docItem.status)}>{getStatusBadge(docItem.status)}</div>
-                                </div>
+             <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24">
+                {loading ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-3"><div className="w-10 h-10 border-4 border-zinc-800 border-t-zinc-500 rounded-full animate-spin"></div><p className="text-sm font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 border-2 border-dashed border-zinc-800 rounded-3xl m-4"><div className="bg-zinc-900 p-4 rounded-full mb-3"><Search size={32}/></div><div className="font-bold text-lg text-zinc-500">ไม่พบรายการ</div><p className="text-sm text-zinc-700">ลองปรับเงื่อนไขการค้นหา</p></div> : 
+                  filteredDocs.map(doc => {
+                    // Status styling logic
+                    const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
+                    
+                    return (
+                      <div key={doc.id} className={`bg-zinc-900 p-1 rounded-2xl shadow-lg border hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:border-zinc-600 transition-all duration-300 relative group pr-4 ${statusConfig.borderColor}`}>
+                        {/* Urgency Stripe */}
+                        <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${URGENCY_LEVELS.find(u=>u.id===doc.urgency)?.color.split(' ')[0].replace('/30', '/80') || 'bg-zinc-700'}`}></div>
+                        
+                        <div className="flex gap-4 pl-4 py-3">
+                          <div className="text-center min-w-[50px] flex flex-col justify-center">
+                             <div className="bg-zinc-800 w-12 h-12 rounded-xl flex items-center justify-center border border-zinc-700/50 shadow-inner mb-1 group-hover:bg-zinc-700/50 transition-colors">
+                                <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br ${statusConfig.numGradient}`}>{doc.runningNumber}</span>
+                             </div>
+                             <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">เลขรับ</div>
+                          </div>
+                          
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <div className="flex gap-2 mb-1.5 items-center">
+                               {getUrgencyBadge(doc.urgency)}
+                               <span className="text-[11px] font-bold text-zinc-500 flex items-center gap-1 bg-zinc-800/50 px-2 py-0.5 rounded-md border border-zinc-800"><Clock size={12} /> {formatDate(doc.receivedAt)} <span className="opacity-30">|</span> {formatTime(doc.receivedAt)} น.</span>
                             </div>
+                            <h3 className={`font-bold text-base leading-snug mb-2 truncate transition-colors ${statusConfig.titleColor}`}>{doc.subject}</h3>
+                            <div className="flex items-center gap-3 text-xs text-zinc-500 mb-2">
+                               <span className="flex items-center gap-1.5 bg-zinc-800 px-2 py-1 rounded-md border border-zinc-700/50"><Building2 size={12} className="text-zinc-400"/> {doc.department}</span>
+                               <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
+                               <span className="flex items-center gap-1.5"><User size={12} className="text-zinc-400"/> รับโดย: <span className="font-medium text-zinc-400">{doc.receiverName}</span></span>
+                            </div>
+                            {doc.note && <div className="text-[11px] text-amber-500/80 bg-amber-950/30 px-2.5 py-1.5 rounded-lg border border-amber-900/50 flex items-start gap-2 max-w-fit"><StickyNote size={12} className="shrink-0 mt-0.5 text-amber-600"/> <span className="truncate max-w-[300px]">{doc.note}</span></div>}
+                          </div>
+                          
+                          <div className="flex flex-col justify-between items-end pl-4 border-l border-zinc-800/80">
+                             <div onClick={()=>handleStatusToggle(doc.id,doc.status)} className={`cursor-pointer transform transition-transform hover:scale-105 active:scale-95 origin-right`}>
+                                {(() => {
+                                  const I = statusConfig.icon;
+                                  return <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border shadow-lg backdrop-blur-md ${statusConfig.color}`}><I size={14}/>{statusConfig.label}</div>
+                                })()}
+                             </div>
+                             <DeleteButton onDelete={()=>handleDelete(doc.id)}/>
+                          </div>
                         </div>
-                        <DeleteButton onDelete={() => handleDelete(docItem.id)} />
-                     </div>
-                   ))}
-                 </div>
-               )}
+                      </div>
+                    );
+                  })
+                }
              </div>
           </div>
-        </main>
+        </div>
       </div>
     </>
   );
