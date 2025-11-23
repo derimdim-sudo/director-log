@@ -368,7 +368,7 @@ export default function DirectorBookLog() {
                 </span>
             </div>
         </div>
-
+</div>
       </div>
     </>
   );
