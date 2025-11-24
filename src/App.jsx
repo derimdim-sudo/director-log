@@ -32,35 +32,36 @@ const db = getFirestore(app);
 const appId = 'director-log-app'; 
 
 // --- Constants ---
-const LAST_OLD_SYSTEM_NUMBER = 339; 
+// 🟢 แก้ไข: ตั้งเป็น 338 เพื่อให้เริ่มที่ 339
+const LAST_OLD_SYSTEM_NUMBER = 338; 
 
 const DEPARTMENTS = [
   "ฝ่ายบริหาร", "ส่วนทัณฑปฏิบัติ", "ส่วนปกครองผู้ต้องขัง", "ส่วนรักษาการณ์",
   "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
-// ธีมสี: Dark Silver / Metallic
+// ธีมสี: Dark Mode (เน้นสีเข้ม ตัดด้วยสีสด)
 const URGENCY_LEVELS = [
-  { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-500' },
-  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-900/30 text-orange-400 border-orange-800/50 hover:bg-orange-900/50' },
-  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-900/30 text-red-400 border-red-800/50 hover:bg-red-900/50' },
-  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-gradient-to-r from-red-900 to-rose-800 text-white border-rose-700 hover:from-red-800 hover:to-rose-700 shadow-[0_0_15px_rgba(225,29,72,0.4)]' }
+  { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700 hover:text-zinc-200' },
+  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-950/40 text-orange-400 border-orange-900/50 hover:bg-orange-900/60' },
+  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-950/40 text-red-400 border-red-900/50 hover:bg-red-900/60' },
+  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-gradient-to-r from-red-900 to-rose-900 text-white border-red-800 hover:from-red-800 hover:to-rose-800 shadow-[0_0_10px_rgba(225,29,72,0.3)]' }
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-900/30 text-amber-400 border border-amber-800/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-900/30 text-emerald-400 border border-emerald-800/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-900/30 text-red-400 border border-red-800/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
 };
 
 // --- Custom Components ---
 
-// 🎗️ Component: แถบคาดมุมขวาบน (Corner Sash) - ปรับสีให้เข้าธีม Dark
+// 🎗️ Component: แถบคาดมุมขวาบน (Corner Sash)
 const MourningSash = () => (
   <div className="fixed top-0 right-0 z-[9999] pointer-events-none w-24 h-24 overflow-hidden">
-    <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-[0_0_20px_rgba(0,0,0,1)] flex items-center justify-center border-b border-zinc-800/50">
+    <div className="absolute top-0 right-0 w-[150%] h-8 bg-[#000000] transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-b border-zinc-800">
        <div className="w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center shadow-inner ring-1 ring-zinc-700">
-          <svg width="10" height="14" viewBox="0 0 24 24" fill="#e4e4e7" xmlns="http://www.w3.org/2000/svg">
+          <svg width="10" height="14" viewBox="0 0 24 24" fill="#52525b" xmlns="http://www.w3.org/2000/svg">
             <path d="M11.8 1.5C9.5 1.5 7.5 3.2 7.5 5.5C7.5 7.2 8.5 8.8 9.8 9.8L7 18.5L11.8 16L16.6 18.5L13.8 9.8C15.1 8.8 16.1 7.2 16.1 5.5C16.1 3.2 14.1 1.5 11.8 1.5ZM11.8 8.5C10.1 8.5 8.8 7.2 8.8 5.5C8.8 3.8 10.1 2.5 11.8 2.5C13.5 2.5 14.8 3.8 14.8 5.5C14.8 7.2 13.5 8.5 11.8 8.5Z" />
           </svg>
        </div>
@@ -79,21 +80,21 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   return (
     <div className="space-y-1.5 relative" ref={wrapperRef}>
-      {label && <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider ml-1">{label}</label>}
+      {label && <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wide ml-1">{label}</label>}
       <div className="relative">
-        <button type="button" onClick={() => setIsOpen(!isOpen)} className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-300 group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}>
+        <button type="button" onClick={() => setIsOpen(!isOpen)} className={`w-full px-3 py-3 bg-[#18181b] border rounded-xl text-sm flex items-center justify-between transition-all group ${isOpen ? 'border-indigo-500 ring-1 ring-indigo-500/50' : 'border-zinc-800 hover:border-zinc-600'}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
+             {Icon && <div className={`p-1 rounded-md transition-colors ${isOpen ? 'bg-indigo-900/50 text-indigo-400' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
              <span className={`truncate font-medium ${!getDisplayLabel() ? 'text-zinc-600' : 'text-zinc-300'}`}>{getDisplayLabel() || placeholder}</span>
           </div>
-          <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
+          <ChevronDown size={16} className={`text-zinc-600 transition-transform ${isOpen ? 'rotate-180 text-indigo-500' : ''}`} />
         </button>
         {isOpen && (
-          <div className="absolute z-[9999] w-full mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 origin-top">
+          <div className="absolute z-[9999] w-full mt-2 bg-[#18181b] border border-zinc-700 rounded-xl shadow-2xl shadow-black max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-100 origin-top">
             {options.map((opt, idx) => (
-              <div key={idx} onClick={() => { onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold shadow-inner':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
+              <div key={idx} onClick={() => { onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
                 <span>{typeof opt === 'string' ? opt : opt.label}</span>
-                {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-emerald-400" />}
+                {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-indigo-500" />}
               </div>
             ))}
           </div>
@@ -107,8 +108,8 @@ const DeleteButton = ({ onDelete }) => {
   const [confirming, setConfirming] = useState(false);
   useEffect(() => { if(confirming){const t=setTimeout(()=>setConfirming(false),3000);return()=>clearTimeout(t)}},[confirming]);
   const handleClick = (e) => { e.stopPropagation(); if (confirming) { onDelete(); setConfirming(false); } else { setConfirming(true); } };
-  if (confirming) return <button onClick={handleClick} className="bg-red-900/80 border border-red-700 text-red-200 px-3 py-1.5 rounded-lg shadow-[0_0_10px_rgba(220,38,38,0.4)] text-[10px] font-bold transition-all mt-2 whitespace-nowrap hover:bg-red-800 hover:text-white">ยืนยันลบ</button>;
-  return <button onClick={handleClick} className="text-zinc-600 hover:text-red-400 p-2 rounded-lg transition-all mt-auto hover:bg-red-900/20"><Trash2 size={16}/></button>;
+  if (confirming) return <button onClick={handleClick} className="bg-red-900/80 border border-red-700/50 text-red-200 px-2 py-1 rounded-lg shadow-[0_0_10px_rgba(220,38,38,0.4)] text-[10px] font-bold transition-all mt-2 whitespace-nowrap hover:bg-red-800">ยืนยันลบ?</button>;
+  return <button onClick={handleClick} className="text-zinc-600 hover:text-red-500 p-1.5 transition-all mt-auto hover:bg-zinc-800 rounded"><Trash2 size={16}/></button>;
 };
 
 // --- Main App ---
@@ -246,9 +247,11 @@ export default function DirectorBookLog() {
         }
       `}</style>
       
+      {/* 🎗️ แถบคาดโบว์ดำไว้อาลัย (Sash) */}
       <MourningSash />
 
-      <div className="h-screen flex flex-col bg-zinc-950 font-sans text-zinc-200 overflow-hidden selection:bg-zinc-700 selection:text-white relative">
+      {/* 🔴 Layout หลัก: Dark Mode */}
+      <div className="h-screen flex flex-col bg-[#09090b] font-sans text-zinc-300 overflow-hidden selection:bg-zinc-700 selection:text-white relative">
         
         {/* Header: Metallic Silver Gradient */}
         <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-zinc-700/50 shrink-0 z-30 shadow-lg shadow-black/50 h-16 flex items-center justify-between px-6 no-print relative overflow-hidden">
@@ -301,9 +304,9 @@ export default function DirectorBookLog() {
 
              {/* Form Footer: Sticky Bottom */}
              <div className="p-5 border-t border-zinc-800 bg-[#121214] shrink-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
-                {/* เปลี่ยนสีปุ่ม "ยืนยันลงรับ" ให้เห็นชัดขึ้น (สีเขียวมรกต Emerald) */}
-                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white font-bold shadow-lg flex justify-center items-center gap-2.5 transition-all duration-300 ${submitting?'bg-zinc-800 cursor-not-allowed text-zinc-500':'bg-gradient-to-r from-emerald-600 to-teal-600 text-white hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98]'}`}>
-                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
+                {/* ปุ่มยืนยัน */}
+                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white font-bold shadow-lg flex justify-center items-center gap-2.5 transition-all duration-300 ${submitting?'bg-zinc-800 cursor-not-allowed text-zinc-500':'bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98]'}`}>
+                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-zinc-500 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
                 </button>
                 
                 {showSuccess && <div className="mt-3 text-xs text-center text-emerald-400 font-bold bg-emerald-900/30 py-2.5 rounded-xl border border-emerald-800/50 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 shadow-lg"><div className="bg-emerald-900 p-0.5 rounded-full"><CheckCircle2 size={14} className="text-emerald-400"/></div> บันทึกสำเร็จ!</div>}
