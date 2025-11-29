@@ -32,7 +32,7 @@ const db = getFirestore(app);
 const appId = 'director-log-app'; 
 
 // --- Constants ---
-const LAST_OLD_SYSTEM_NUMBER = 339; 
+const LAST_OLD_SYSTEM_NUMBER = 338; 
 
 const DEPARTMENTS = [
   "ฝ่ายบริหาร", "ส่วนทัณฑปฏิบัติ", "ส่วนปกครองผู้ต้องขัง", "ส่วนรักษาการณ์",
@@ -48,9 +48,9 @@ const URGENCY_LEVELS = [
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
 };
 
 // --- Custom Components ---
@@ -68,12 +68,15 @@ const MourningSash = () => (
   </div>
 );
 
-// 📝 Detail/Edit Modal (หน้าต่างดูรายละเอียดและแก้ไข)
+// 📝 Detail/Edit Modal
 const DetailModal = ({ docItem, onClose, onSave }) => {
-  const [editSubject, setEditSubject] = useState(docItem.subject);
+  const [editSubject, setEditSubject] = useState(docItem.subject || '');
   const [editNote, setEditNote] = useState(docItem.note || '');
   const [returnReason, setReturnReason] = useState(docItem.returnReason || '');
   const [saving, setSaving] = useState(false);
+
+  // 🛡️ กันตาย: ถ้าสถานะไม่มี ให้ใช้ค่า default
+  const statusConfig = STATUS_LEVELS[docItem.status] || STATUS_LEVELS['pending'];
 
   const handleSave = async () => {
     setSaving(true);
@@ -94,11 +97,11 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
         <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
           <div className="flex items-center gap-3">
              <div className="bg-zinc-800 p-2.5 rounded-xl border border-zinc-700 shadow-inner">
-                <span className="text-2xl font-black text-white tracking-tight">{docItem.runningNumber}</span>
+                <span className="text-2xl font-black text-white tracking-tight">{docItem.runningNumber || '-'}</span>
              </div>
              <div>
                 <h3 className="text-base font-bold text-zinc-200 leading-none">รายละเอียดเอกสาร</h3>
-                <p className="text-[11px] text-zinc-500 mt-1">{docItem.department}</p>
+                <p className="text-[11px] text-zinc-500 mt-1">{docItem.department || 'ไม่ระบุ'}</p>
              </div>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-zinc-800 transition-all"><X size={20}/></button>
@@ -107,11 +110,11 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
         {/* Body */}
         <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
            {/* Status Banner */}
-           <div className={`flex items-center justify-between p-3.5 rounded-xl border ${STATUS_LEVELS[docItem.status]?.color.replace('ring-1', 'border bg-opacity-20')}`}>
+           <div className={`flex items-center justify-between p-3.5 rounded-xl border ${statusConfig.color.replace('ring-1', 'border bg-opacity-20')}`}>
               <span className="text-xs font-bold opacity-70 uppercase tracking-wider">สถานะปัจจุบัน</span>
               <div className="flex items-center gap-2 font-bold text-sm">
-                 {STATUS_LEVELS[docItem.status]?.icon && React.createElement(STATUS_LEVELS[docItem.status].icon, { size: 18 })}
-                 {STATUS_LEVELS[docItem.status]?.label}
+                 {statusConfig.icon && React.createElement(statusConfig.icon, { size: 18 })}
+                 {statusConfig.label}
               </div>
            </div>
 
@@ -141,7 +144,7 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
                   />
                </div>
                
-               {/* Return Reason (Editable) - Highlighted */}
+               {/* Return Reason (Editable) */}
                <div>
                   <label className="block text-xs font-bold text-red-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                      <AlertTriangle size={14}/> เหตุผลการคืนเรื่อง
@@ -357,6 +360,7 @@ export default function DirectorBookLog() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
         @media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; background-color: white !important; color: black !important; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #000; padding: 8px; } .print-table td { border: 1px solid #000; padding: 8px; text-align: left; vertical-align: top; } .print-header { text-align: center; margin-bottom: 20px; } .bg-slate-50 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #18181b; } ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; } hover::-webkit-scrollbar-thumb { background: #52525b; }
+        /* CSS Animation for Glowing Red Dot */
         @keyframes heartbeat {
           0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
           50% { transform: scale(1.1); opacity: 0.8; box-shadow: 0 0 10px 10px rgba(225, 29, 72, 0); }
@@ -366,20 +370,22 @@ export default function DirectorBookLog() {
         }
       `}</style>
       
+      {/* 🎗️ แถบคาดโบว์ดำไว้อาลัย (Sash) */}
       <MourningSash />
       
       {/* Detail/Edit Modal */}
       {detailDoc && (
-        <EditModal 
+        <DetailModal 
           docItem={detailDoc} 
           onClose={() => setDetailDoc(null)} 
           onSave={handleUpdateDoc}
         />
       )}
 
+      {/* 🔴 Layout หลัก: Dark Mode */}
       <div className="h-screen flex flex-col bg-[#09090b] font-sans text-zinc-300 overflow-hidden selection:bg-zinc-700 selection:text-white relative">
         
-        {/* Header */}
+        {/* Header: Metallic Silver Gradient */}
         <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-zinc-700/50 shrink-0 z-30 shadow-lg shadow-black/50 h-16 flex items-center justify-between px-6 no-print relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
           <div className="flex items-center gap-3 z-10">
@@ -398,7 +404,7 @@ export default function DirectorBookLog() {
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* Left Panel (Form) */}
+          {/* Left Panel (Form): Dark Metallic Panel */}
           <div className="w-[380px] min-w-[380px] bg-[#121214] border-r border-zinc-800 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.5)] z-20 no-print relative">
              <div className="p-5 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm flex justify-between items-center shrink-0 sticky top-0">
                <h2 className="font-bold text-zinc-300 flex items-center gap-2.5 text-sm"><div className="bg-zinc-800 p-1.5 rounded-lg text-zinc-400 border border-zinc-700"><PenTool size={16}/></div> ลงรับหนังสือใหม่</h2>
@@ -414,7 +420,7 @@ export default function DirectorBookLog() {
                 </div>
                 
                 <div><label className="block text-[11px] font-bold text-zinc-500 mb-2 uppercase tracking-wider ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-2.5">{URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-xs py-3 rounded-xl font-semibold border transition-all duration-300 ${urgency===l.id?`${l.color} ring-1 ring-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]`:'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}>{l.label}</button>)}</div></div>
-                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">เรื่อง</label><input className="mt-1.5 w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all placeholder:text-zinc-600 font-medium text-zinc-200 shadow-inner" value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">เรื่อง</label><input className="mt-1.5 w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all placeholder:text-zinc-700 font-medium text-zinc-200 shadow-inner" value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
                 <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
                 <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">ผู้รับเอกสาร</label><div className="relative mt-1.5 group"><input className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all font-medium text-zinc-200 shadow-inner" value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><User size={14}/></div></div>{savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2.5 px-1">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg cursor-pointer text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-800 transition-all">{n}</span>)}</div>}</div>
                 <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">หมายเหตุ</label><div className="relative mt-1.5 group"><textarea className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none h-20 resize-none transition-all font-medium text-zinc-200 shadow-inner" value={note} onChange={e=>setNote(e.target.value)} placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><StickyNote size={14}/></div></div></div>
@@ -494,7 +500,7 @@ export default function DirectorBookLog() {
           </div>
         </div>
 
-        {/* 🟢 Credit Footer */}
+        {/* 🟢 Credit Footer: Signature with Red Glow Effect */}
         <div className="fixed bottom-3 right-4 z-[100] pointer-events-auto select-none no-print group">
            <div className="bg-black/60 backdrop-blur-md border border-white/5 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 transition-all duration-500 hover:bg-black/80 hover:border-rose-900/50 cursor-default relative overflow-hidden">
                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-rose-500/5 blur-md"></div>
