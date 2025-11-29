@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
-  deleteDoc, doc, updateDoc, writeBatch
+  deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -10,7 +10,7 @@ import {
   PenTool, User, Building2, Save, Search, Printer, 
   Trash2, CheckSquare, RefreshCcw, Sparkles, XCircle,
   Calendar, Filter, Download, Layers, X, StickyNote,
-  ChevronDown, Check, CheckCheck
+  ChevronDown, Check, Edit3, AlertTriangle, FileText
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
@@ -32,14 +32,14 @@ const db = getFirestore(app);
 const appId = 'director-log-app'; 
 
 // --- Constants ---
-const LAST_OLD_SYSTEM_NUMBER = 338; 
+const LAST_OLD_SYSTEM_NUMBER = 339; 
 
 const DEPARTMENTS = [
   "ฝ่ายบริหาร", "ส่วนทัณฑปฏิบัติ", "ส่วนปกครองผู้ต้องขัง", "ส่วนรักษาการณ์",
   "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
-// ธีมสี: Dark Mode (เน้นสีเข้ม ตัดด้วยสีสด)
+// ธีมสี: Dark Mode
 const URGENCY_LEVELS = [
   { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700 hover:text-zinc-200' },
   { id: 'urgent', label: 'ด่วน', color: 'bg-orange-950/40 text-orange-400 border-orange-900/50 hover:bg-orange-900/60' },
@@ -48,16 +48,16 @@ const URGENCY_LEVELS = [
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw },
 };
 
 // --- Custom Components ---
 
-// 🎗️ Component: แถบคาดมุมขวาบน (Corner Sash) - ปรับสีให้เข้าธีม Dark
+// 🎗️ Mourning Sash
 const MourningSash = () => (
-  <div className="fixed top-0 right-0 z-[9999] pointer-events-none w-24 h-24 overflow-hidden">
+  <div className="fixed top-0 right-0 z-[9998] pointer-events-none w-24 h-24 overflow-hidden">
     <div className="absolute top-0 right-0 w-[150%] h-8 bg-[#000000] transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-b border-zinc-800">
        <div className="w-5 h-5 bg-zinc-900 rounded-full flex items-center justify-center shadow-inner ring-1 ring-zinc-700">
           <svg width="10" height="14" viewBox="0 0 24 24" fill="#52525b" xmlns="http://www.w3.org/2000/svg">
@@ -67,6 +67,113 @@ const MourningSash = () => (
     </div>
   </div>
 );
+
+// 📝 Detail/Edit Modal (หน้าต่างดูรายละเอียดและแก้ไข)
+const DetailModal = ({ docItem, onClose, onSave }) => {
+  const [editSubject, setEditSubject] = useState(docItem.subject);
+  const [editNote, setEditNote] = useState(docItem.note || '');
+  const [returnReason, setReturnReason] = useState(docItem.returnReason || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(docItem.id, { 
+        subject: editSubject, 
+        note: editNote,
+        returnReason: returnReason
+    });
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-[#18181b] w-full max-w-lg rounded-2xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
+        <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+          <div className="flex items-center gap-3">
+             <div className="bg-zinc-800 p-2.5 rounded-xl border border-zinc-700 shadow-inner">
+                <span className="text-2xl font-black text-white tracking-tight">{docItem.runningNumber}</span>
+             </div>
+             <div>
+                <h3 className="text-base font-bold text-zinc-200 leading-none">รายละเอียดเอกสาร</h3>
+                <p className="text-[11px] text-zinc-500 mt-1">{docItem.department}</p>
+             </div>
+          </div>
+          <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-zinc-800 transition-all"><X size={20}/></button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+           {/* Status Banner */}
+           <div className={`flex items-center justify-between p-3.5 rounded-xl border ${STATUS_LEVELS[docItem.status]?.color.replace('ring-1', 'border bg-opacity-20')}`}>
+              <span className="text-xs font-bold opacity-70 uppercase tracking-wider">สถานะปัจจุบัน</span>
+              <div className="flex items-center gap-2 font-bold text-sm">
+                 {STATUS_LEVELS[docItem.status]?.icon && React.createElement(STATUS_LEVELS[docItem.status].icon, { size: 18 })}
+                 {STATUS_LEVELS[docItem.status]?.label}
+              </div>
+           </div>
+
+           {/* Subject (Editable) */}
+           <div>
+              <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
+                 <FileText size={14}/> เรื่อง (แก้ไขได้)
+              </label>
+              <textarea 
+                value={editSubject} 
+                onChange={(e) => setEditSubject(e.target.value)}
+                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 outline-none min-h-[80px] resize-none leading-relaxed shadow-inner"
+              />
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {/* Note (Editable) */}
+               <div>
+                  <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
+                     <StickyNote size={14}/> หมายเหตุทั่วไป
+                  </label>
+                  <textarea 
+                    value={editNote} 
+                    onChange={(e) => setEditNote(e.target.value)}
+                    placeholder="ไม่มีหมายเหตุ..."
+                    className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-sm text-zinc-300 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 outline-none min-h-[100px] resize-none shadow-inner"
+                  />
+               </div>
+               
+               {/* Return Reason (Editable) - Highlighted */}
+               <div>
+                  <label className="block text-xs font-bold text-red-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
+                     <AlertTriangle size={14}/> เหตุผลการคืนเรื่อง
+                  </label>
+                  <textarea 
+                    value={returnReason} 
+                    onChange={(e) => setReturnReason(e.target.value)}
+                    placeholder="ระบุเหตุผลที่คืนเรื่อง..."
+                    className="w-full p-3 bg-red-950/10 border border-red-900/30 rounded-xl text-sm text-red-200 focus:border-red-800 focus:ring-1 focus:ring-red-900 outline-none min-h-[100px] resize-none placeholder:text-red-900/40 shadow-inner"
+                  />
+               </div>
+           </div>
+
+           {/* Meta Info */}
+           <div className="pt-4 border-t border-zinc-800/50 flex justify-between text-xs text-zinc-500 font-medium">
+              <div className="flex items-center gap-2"><User size={14}/> ผู้รับ: <span className="text-zinc-300">{docItem.receiverName}</span></div>
+              <div className="flex items-center gap-2"><Clock size={14}/> ลงรับเมื่อ: <span className="text-zinc-300">{docItem.receivedAt?.toLocaleDateString('th-TH')} {docItem.receivedAt?.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</span></div>
+           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-zinc-800 bg-zinc-900/80 backdrop-blur-sm flex justify-end gap-3">
+           <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all border border-transparent hover:border-zinc-700">ยกเลิก</button>
+           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 transition-all shadow-lg hover:shadow-white/10 active:scale-95 flex items-center gap-2">
+              {saving ? <div className="w-3 h-3 border-2 border-zinc-400 border-t-black rounded-full animate-spin"/> : <Check size={16}/>}
+              บันทึกการแก้ไข
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -79,19 +186,19 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   return (
     <div className="space-y-1.5 relative" ref={wrapperRef}>
-      {label && <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wide ml-1">{label}</label>}
+      {label && <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider ml-1">{label}</label>}
       <div className="relative">
-        <button type="button" onClick={() => setIsOpen(!isOpen)} className={`w-full px-3 py-3 bg-[#18181b] border rounded-xl text-sm flex items-center justify-between transition-all group ${isOpen ? 'border-indigo-500 ring-1 ring-indigo-500/50' : 'border-zinc-800 hover:border-zinc-600'}`}>
+        <button type="button" onClick={() => setIsOpen(!isOpen)} className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-300 group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}>
           <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-indigo-900/50 text-indigo-400' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
+             {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
              <span className={`truncate font-medium ${!getDisplayLabel() ? 'text-zinc-600' : 'text-zinc-300'}`}>{getDisplayLabel() || placeholder}</span>
           </div>
-          <ChevronDown size={16} className={`text-zinc-600 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-500' : ''}`} />
+          <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
         </button>
         {isOpen && (
-          <div className="absolute z-[9999] w-full mt-2 bg-[#18181b] border border-zinc-700 rounded-xl shadow-2xl shadow-black max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-100 origin-top">
+          <div className="absolute z-[9999] w-full mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 origin-top">
             {options.map((opt, idx) => (
-              <div key={idx} onClick={() => { onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
+              <div key={idx} onClick={() => { onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold shadow-inner':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
                 <span>{typeof opt === 'string' ? opt : opt.label}</span>
                 {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-emerald-400" />}
               </div>
@@ -117,6 +224,7 @@ export default function DirectorBookLog() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  // Form
   const [subject, setSubject] = useState('');
   const [department, setDepartment] = useState(DEPARTMENTS[0]);
   const [urgency, setUrgency] = useState('normal');
@@ -126,13 +234,14 @@ export default function DirectorBookLog() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
+  // Filter & State
   const [savedReceivers, setSavedReceivers] = useState([]);
   const [filterTerm, setFilterTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); 
   
-  // Selection State
-  const [selectedDocs, setSelectedDocs] = useState(new Set());
+  // Detail/Edit Modal State
+  const [detailDoc, setDetailDoc] = useState(null);
 
   useEffect(() => {
     signInAnonymously(auth).catch((err) => console.error(err));
@@ -198,31 +307,14 @@ export default function DirectorBookLog() {
     const next = status === 'pending' ? 'signed' : status === 'signed' ? 'returned' : 'pending';
     try { await updateDoc(doc(db, 'director_submissions', docId), { status: next }); } catch(e){}
   };
+  
   const handleDelete = async (id) => { try { await deleteDoc(doc(db, 'director_submissions', id)); } catch(e){} };
-
-  // Batch Actions
-  const handleSelectDoc = (id) => {
-    const newSelected = new Set(selectedDocs);
-    if (newSelected.has(id)) newSelected.delete(id); else newSelected.add(id);
-    setSelectedDocs(newSelected);
-  };
-
-  const handleBatchSign = async () => {
-    if (selectedDocs.size === 0) return;
-    if (!confirm(`ยืนยันเปลี่ยนสถานะเป็น "เซ็นแล้ว" จำนวน ${selectedDocs.size} รายการ?`)) return;
-    
-    const batch = writeBatch(db);
-    selectedDocs.forEach(docId => {
-      const docRef = doc(db, 'director_submissions', docId);
-      batch.update(docRef, { status: 'signed' });
-    });
-
+  
+  const handleUpdateDoc = async (docId, newData) => {
     try {
-      await batch.commit();
-      setSelectedDocs(new Set()); // Clear selection
-    } catch (err) {
-      console.error("Batch update failed", err);
-      alert("เกิดข้อผิดพลาดในการบันทึกกลุ่ม");
+      await updateDoc(doc(db, 'director_submissions', docId), newData);
+    } catch (e) {
+      alert("แก้ไขไม่สำเร็จ: " + e.message);
     }
   };
 
@@ -232,11 +324,12 @@ export default function DirectorBookLog() {
   const getStatusBadge = (key) => { const s = STATUS_LEVELS[key] || STATUS_LEVELS['pending']; const I = s.icon; return <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer select-none transition-all hover:shadow-[0_0_10px_rgba(255,255,255,0.1)] hover:scale-105 active:scale-95 whitespace-nowrap ${s.color}`}><I size={14} />{s.label}</div>; };
   const handlePrint = () => window.print();
   const handleExportExcel = () => { 
-    const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงานเจ้าของเรื่อง,ผู้รับ,หมายเหตุ,สถานะ\n";
+    const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงานเจ้าของเรื่อง,ผู้รับ,หมายเหตุ,เหตุผลการคืน,สถานะ\n";
     const csvRows = filteredDocs.map(doc => {
       const noteText = `"${(doc.note || '').replace(/"/g, '""')}"`;
+      const returnReasonText = `"${(doc.returnReason || '').replace(/"/g, '""')}"`;
       const subj = `"${doc.subject.replace(/"/g, '""')}"`;
-      return `${doc.runningNumber || ''},${formatDate(doc.receivedAt)},${formatTime(doc.receivedAt)},${URGENCY_LEVELS.find(l => l.id === doc.urgency)?.label || 'ปกติ'},${subj},"${doc.department}","${doc.receiverName}",${noteText},${STATUS_LEVELS[doc.status]?.label || 'รอเสนอ'}`;
+      return `${doc.runningNumber || ''},${formatDate(doc.receivedAt)},${formatTime(doc.receivedAt)},${URGENCY_LEVELS.find(l => l.id === doc.urgency)?.label || 'ปกติ'},${subj},"${doc.department}","${doc.receiverName}",${noteText},${returnReasonText},${STATUS_LEVELS[doc.status]?.label || 'รอเสนอ'}`;
     });
     const csvContent = "\uFEFF" + csvHeader + csvRows.join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -254,11 +347,7 @@ export default function DirectorBookLog() {
     const matchesTerm = d.subject.toLowerCase().includes(term) || d.department.toLowerCase().includes(term) || (d.runningNumber+'').includes(term);
     let matchesDate = true;
     if (filterDate) { const dx=d.receivedAt; matchesDate = `${dx.getFullYear()}-${String(dx.getMonth()+1).padStart(2,'0')}-${String(dx.getDate()).padStart(2,'0')}` === filterDate; }
-    
-    // Filter Status Logic
-    const matchesStatus = filterStatus === 'all' ? true : d.status === filterStatus;
-
-    return matchesTerm && matchesDate && matchesStatus;
+    return matchesTerm && matchesDate && (filterStatus === 'all' || d.status === filterStatus);
   });
 
   const nextRunningNumberDisplay = getNextRunningNumber();
@@ -268,7 +357,6 @@ export default function DirectorBookLog() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
         @media print { @page { margin: 1cm; size: A4; } body { -webkit-print-color-adjust: exact; background-color: white !important; color: black !important; } .no-print { display: none !important; } .print-only { display: block !important; } .print-table { width: 100%; border-collapse: collapse; font-family: 'Sarabun', sans-serif; } .print-table th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #000; padding: 8px; } .print-table td { border: 1px solid #000; padding: 8px; text-align: left; vertical-align: top; } .print-header { text-align: center; margin-bottom: 20px; } .bg-slate-50 { background-color: white !important; } } .print-only { display: none; } ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-track { background: #18181b; } ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; } hover::-webkit-scrollbar-thumb { background: #52525b; }
-        /* CSS Animation for Glowing Red Dot */
         @keyframes heartbeat {
           0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
           50% { transform: scale(1.1); opacity: 0.8; box-shadow: 0 0 10px 10px rgba(225, 29, 72, 0); }
@@ -278,17 +366,22 @@ export default function DirectorBookLog() {
         }
       `}</style>
       
-      {/* 🎗️ แถบคาดโบว์ดำไว้อาลัย (Sash) */}
       <MourningSash />
+      
+      {/* Detail/Edit Modal */}
+      {detailDoc && (
+        <EditModal 
+          docItem={detailDoc} 
+          onClose={() => setDetailDoc(null)} 
+          onSave={handleUpdateDoc}
+        />
+      )}
 
-      {/* 🔴 Layout หลัก: Dark Mode */}
       <div className="h-screen flex flex-col bg-[#09090b] font-sans text-zinc-300 overflow-hidden selection:bg-zinc-700 selection:text-white relative">
         
-        {/* Header: Metallic Silver Gradient */}
+        {/* Header */}
         <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-zinc-700/50 shrink-0 z-30 shadow-lg shadow-black/50 h-16 flex items-center justify-between px-6 no-print relative overflow-hidden">
-          {/* Glossy effect overlay */}
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
-          
           <div className="flex items-center gap-3 z-10">
             <div className="bg-gradient-to-br from-zinc-700 to-black p-2 rounded-xl shadow-[0_0_10px_rgba(255,255,255,0.1)] border border-zinc-600"><BookOpen size={20} className="text-zinc-300" /></div>
             <div>
@@ -305,7 +398,7 @@ export default function DirectorBookLog() {
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* Left Panel (Form): Dark Metallic Panel */}
+          {/* Left Panel (Form) */}
           <div className="w-[380px] min-w-[380px] bg-[#121214] border-r border-zinc-800 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.5)] z-20 no-print relative">
              <div className="p-5 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm flex justify-between items-center shrink-0 sticky top-0">
                <h2 className="font-bold text-zinc-300 flex items-center gap-2.5 text-sm"><div className="bg-zinc-800 p-1.5 rounded-lg text-zinc-400 border border-zinc-700"><PenTool size={16}/></div> ลงรับหนังสือใหม่</h2>
@@ -313,7 +406,6 @@ export default function DirectorBookLog() {
              </div>
 
              <div className="flex-1 overflow-y-auto p-5 space-y-5">
-                {/* Next Number Card: Metallic Look */}
                 <div className="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-2xl border border-zinc-700/50 flex flex-col items-center relative overflow-hidden group shadow-lg">
                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-500 via-zinc-300 to-zinc-500 opacity-50"></div>
                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
@@ -322,24 +414,16 @@ export default function DirectorBookLog() {
                 </div>
                 
                 <div><label className="block text-[11px] font-bold text-zinc-500 mb-2 uppercase tracking-wider ml-1">ความเร่งด่วน</label><div className="grid grid-cols-2 gap-2.5">{URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-xs py-3 rounded-xl font-semibold border transition-all duration-300 ${urgency===l.id?`${l.color} ring-1 ring-white/10 shadow-[0_0_15px_rgba(0,0,0,0.5)]`:'bg-zinc-900 text-zinc-500 border-zinc-800 hover:bg-zinc-800 hover:border-zinc-600 hover:text-zinc-300'}`}>{l.label}</button>)}</div></div>
-                
                 <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">เรื่อง</label><input className="mt-1.5 w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all placeholder:text-zinc-600 font-medium text-zinc-200 shadow-inner" value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
-                
                 <CustomSelect label="หน่วยงานเจ้าของเรื่อง" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
-                
-                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">ผู้รับเอกสาร</label><div className="relative mt-1.5 group"><input className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all font-medium text-zinc-200 shadow-inner" value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><User size={14}/></div></div>
-                {savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2.5 px-1">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg cursor-pointer text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-800 transition-all">{n}</span>)}</div>}</div>
-                
+                <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">ผู้รับเอกสาร</label><div className="relative mt-1.5 group"><input className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none transition-all font-medium text-zinc-200 shadow-inner" value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><User size={14}/></div></div>{savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2.5 px-1">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-zinc-900 border border-zinc-800 px-2 py-1 rounded-lg cursor-pointer text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-800 transition-all">{n}</span>)}</div>}</div>
                 <div><label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">หมายเหตุ</label><div className="relative mt-1.5 group"><textarea className="w-full pl-11 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-xl text-sm focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none h-20 resize-none transition-all font-medium text-zinc-200 shadow-inner" value={note} onChange={e=>setNote(e.target.value)} placeholder="..." /><div className="absolute left-3.5 top-3 p-1 bg-zinc-800 rounded-md text-zinc-500 group-focus-within:bg-zinc-700 group-focus-within:text-white transition-colors"><StickyNote size={14}/></div></div></div>
              </div>
 
-             {/* Form Footer: Sticky Bottom */}
              <div className="p-5 border-t border-zinc-800 bg-[#121214] shrink-0 z-10 shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
-                {/* ปุ่มสีเขียว (Emerald) เพื่อให้เห็นชัดตัดกับพื้นดำ */}
                 <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white font-bold shadow-lg flex justify-center items-center gap-2.5 transition-all duration-300 ${submitting?'bg-zinc-800 cursor-not-allowed text-zinc-500':'bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-[1.02] active:scale-[0.98]'}`}>
-                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
+                  {submitting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-zinc-500 border-t-white rounded-full animate-spin"/> กำลังบันทึก...</span> : <><Save size={18}/> ยืนยันลงรับ</>}
                 </button>
-                
                 {showSuccess && <div className="mt-3 text-xs text-center text-emerald-400 font-bold bg-emerald-900/20 py-2.5 rounded-xl border border-emerald-800/50 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 shadow-lg"><div className="bg-emerald-900 p-0.5 rounded-full"><CheckCircle2 size={14} className="text-emerald-400"/></div> บันทึกสำเร็จ!</div>}
                 {errorMsg && <div className="mt-3 text-xs text-center text-red-400 font-bold bg-red-900/30 py-2.5 rounded-xl border border-red-800/50 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2 shadow-lg"><XCircle size={16}/> {errorMsg}</div>}
              </div>
@@ -349,51 +433,18 @@ export default function DirectorBookLog() {
           <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden relative">
              {/* Filters Bar */}
              <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-xl flex gap-3 shrink-0 items-center overflow-x-auto pr-16 shadow-lg">
-                
-                {/* Batch Select All */}
-                <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-2.5 rounded-xl hover:border-zinc-600 cursor-pointer transition-colors" onClick={() => {
-                   if (selectedDocs.size === filteredDocs.length && filteredDocs.length > 0) setSelectedDocs(new Set());
-                   else setSelectedDocs(new Set(filteredDocs.map(d => d.id)));
-                }}>
-                    <input 
-                      type="checkbox" 
-                      className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
-                      checked={filteredDocs.length > 0 && selectedDocs.size === filteredDocs.length}
-                      readOnly
-                    />
-                    <span className="text-xs font-bold text-zinc-400 select-none">Select All</span>
-                </div>
-
                 <div className="relative flex-1 min-w-[200px] group"><Search size={18} className="absolute left-3.5 top-2.5 text-zinc-500 group-focus-within:text-zinc-300 transition-colors"/><input className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-900 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition-all shadow-sm text-zinc-200 font-medium placeholder:text-zinc-600" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
                 <div className="relative min-w-[160px] group"><Calendar size={18} className="absolute left-3.5 top-2.5 text-zinc-500 group-focus-within:text-zinc-300 transition-colors"/><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-900 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-500 focus:border-zinc-500 outline-none text-zinc-400 font-medium cursor-pointer shadow-sm [color-scheme:dark]" /></div>
-                
-                {/* Status Filter (กลับมาแล้ว!) */}
-                <div className="w-40"><CustomSelect value={filterStatus} options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ"/></div>
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24">
                 {loading ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 gap-3"><div className="w-10 h-10 border-4 border-zinc-800 border-t-zinc-500 rounded-full animate-spin"></div><p className="text-sm font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-20 text-zinc-600 border-2 border-dashed border-zinc-900 rounded-3xl m-4"><div className="bg-zinc-900 p-4 rounded-full mb-3"><Search size={32}/></div><div className="font-bold text-lg text-zinc-500">ไม่พบรายการ</div><p className="text-sm text-zinc-700">ลองปรับเงื่อนไขการค้นหา</p></div> : 
                   filteredDocs.map(doc => {
-                    // Status styling logic
                     const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
-                    const isSelected = selectedDocs.has(doc.id);
-                    
                     return (
-                      <div key={doc.id} className={`bg-zinc-900 p-1 rounded-2xl shadow-lg border hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:border-zinc-600 transition-all duration-300 relative group pr-4 ${statusConfig.borderColor} ${isSelected ? 'ring-2 ring-emerald-500/50 bg-zinc-800/80' : ''}`}>
-                        {/* Urgency Stripe */}
+                      <div key={doc.id} className={`bg-zinc-900 p-1 rounded-2xl shadow-lg border hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] hover:border-zinc-600 transition-all duration-300 relative group pr-4 ${statusConfig.borderColor}`}>
                         <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-2xl ${URGENCY_LEVELS.find(u=>u.id===doc.urgency)?.color.split(' ')[0].replace('/30', '/80') || 'bg-zinc-700'}`}></div>
-                        
-                        <div className="flex gap-4 pl-4 py-3 items-start">
-                           {/* Checkbox */}
-                           <div className="pt-1.5">
-                             <input 
-                               type="checkbox" 
-                               className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer accent-emerald-500"
-                               checked={isSelected}
-                               onChange={() => handleSelectDoc(doc.id)}
-                             />
-                           </div>
-
+                        <div className="flex gap-4 pl-4 py-3">
                           <div className="text-center min-w-[50px] flex flex-col justify-center">
                              <div className="bg-zinc-800 w-12 h-12 rounded-xl flex items-center justify-center border border-zinc-700/50 shadow-inner mb-1 group-hover:bg-zinc-700/50 transition-colors">
                                 <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br ${statusConfig.numGradient}`}>{doc.runningNumber}</span>
@@ -406,13 +457,20 @@ export default function DirectorBookLog() {
                                {getUrgencyBadge(doc.urgency)}
                                <span className="text-[11px] font-bold text-zinc-500 flex items-center gap-1 bg-zinc-800/50 px-2 py-0.5 rounded-md border border-zinc-800"><Clock size={12} /> {formatDate(doc.receivedAt)} <span className="opacity-30">|</span> {formatTime(doc.receivedAt)} น.</span>
                             </div>
-                            <h3 className={`font-bold text-base leading-snug mb-2 truncate transition-colors ${statusConfig.titleColor}`}>{doc.subject}</h3>
+                            <h3 
+                                className={`font-bold text-base leading-snug mb-2 truncate transition-colors cursor-pointer hover:underline ${statusConfig.titleColor}`}
+                                onClick={() => setDetailDoc(doc)}
+                                title="คลิกเพื่อดูรายละเอียดและแก้ไข"
+                            >
+                                {doc.subject}
+                            </h3>
                             <div className="flex items-center gap-3 text-xs text-zinc-500 mb-2">
                                <span className="flex items-center gap-1.5 bg-zinc-800 px-2 py-1 rounded-md border border-zinc-700/50"><Building2 size={12} className="text-zinc-400"/> {doc.department}</span>
                                <span className="w-1 h-1 bg-zinc-700 rounded-full"></span>
                                <span className="flex items-center gap-1.5"><User size={12} className="text-zinc-400"/> รับโดย: <span className="font-medium text-zinc-400">{doc.receiverName}</span></span>
                             </div>
                             {doc.note && <div className="text-[11px] text-amber-500/80 bg-amber-950/30 px-2.5 py-1.5 rounded-lg border border-amber-900/50 flex items-start gap-2 max-w-fit"><StickyNote size={12} className="shrink-0 mt-0.5 text-amber-600"/> <span className="truncate max-w-[300px]">{doc.note}</span></div>}
+                            {doc.returnReason && <div className="text-[11px] text-red-400 bg-red-950/30 px-2.5 py-1.5 rounded-lg border border-red-900/50 flex items-start gap-2 max-w-fit mt-1"><AlertTriangle size={12} className="shrink-0 mt-0.5 text-red-500"/> <span className="truncate max-w-[300px] font-bold">คืนเรื่อง: {doc.returnReason}</span></div>}
                           </div>
                           
                           <div className="flex flex-col justify-between items-end pl-4 border-l border-zinc-800/80">
@@ -422,7 +480,10 @@ export default function DirectorBookLog() {
                                   return <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border shadow-lg backdrop-blur-md ${statusConfig.color}`}><I size={14}/>{statusConfig.label}</div>
                                 })()}
                              </div>
-                             <DeleteButton onDelete={()=>handleDelete(doc.id)}/>
+                             <div className="flex gap-1 mt-auto">
+                               <button onClick={() => setDetailDoc(doc)} className="text-zinc-600 hover:text-zinc-300 p-2 rounded-lg transition-all hover:bg-zinc-800" title="แก้ไข/ดูรายละเอียด"><Edit3 size={16}/></button>
+                               <DeleteButton onDelete={()=>handleDelete(doc.id)}/>
+                             </div>
                           </div>
                         </div>
                       </div>
@@ -430,42 +491,17 @@ export default function DirectorBookLog() {
                   })
                 }
              </div>
-             
-             {/* Batch Action Bar (Floating) */}
-             {selectedDocs.size > 0 && (
-               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-10 fade-in">
-                 <div className="bg-zinc-900/90 backdrop-blur-xl border border-zinc-700/80 rounded-2xl shadow-2xl px-6 py-3 flex items-center gap-4 ring-1 ring-white/10">
-                    <span className="text-sm text-zinc-200 font-bold">{selectedDocs.size} รายการที่เลือก</span>
-                    <div className="h-6 w-px bg-zinc-700"></div>
-                    <button 
-                      onClick={handleBatchSign}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-emerald-900/50"
-                    >
-                      <Check size={16} /> เซ็นแล้ว (Batch Sign)
-                    </button>
-                    <button 
-                      onClick={() => setSelectedDocs(new Set())}
-                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white px-3 py-2 rounded-xl transition-all border border-zinc-700"
-                    >
-                      <X size={16} />
-                    </button>
-                 </div>
-               </div>
-             )}
           </div>
         </div>
 
-        {/* 🟢 Credit Footer: Signature with Red Glow Effect */}
+        {/* 🟢 Credit Footer */}
         <div className="fixed bottom-3 right-4 z-[100] pointer-events-auto select-none no-print group">
            <div className="bg-black/60 backdrop-blur-md border border-white/5 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 transition-all duration-500 hover:bg-black/80 hover:border-rose-900/50 cursor-default relative overflow-hidden">
-               {/* Red Glow Effect */}
                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-rose-500/5 blur-md"></div>
-               
                <span className="relative flex h-2 w-2">
                   <span className="animate-heartbeat absolute inline-flex h-full w-full rounded-full bg-rose-600 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_10px_#f43f5e]"></span>
                </span>
-               
                <span className="font-handwriting text-[12px] text-zinc-500 italic tracking-wider group-hover:text-zinc-300 transition-colors relative z-10" style={{ fontFamily: "'Dancing Script', cursive" }}>
                   design By <span className="text-zinc-400 group-hover:text-rose-400 font-bold not-italic transition-colors drop-shadow-[0_0_5px_rgba(244,63,94,0.5)]">Dream APL</span>
                </span>
