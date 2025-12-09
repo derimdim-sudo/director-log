@@ -136,7 +136,41 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
   );
 };
 
-// 🔐 Login Screen: Polished & Safe Icons
+// 🗑️ Delete Button (เพิ่มกลับมาแล้ว!)
+const DeleteButton = ({ onDelete }) => {
+  const [confirming, setConfirming] = useState(false);
+  
+  useEffect(() => { 
+    if(confirming){
+      const t = setTimeout(() => setConfirming(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [confirming]);
+
+  const handleClick = (e) => { 
+    e.stopPropagation(); 
+    if (confirming) { 
+      onDelete(); 
+      setConfirming(false); 
+    } else { 
+      setConfirming(true); 
+    } 
+  };
+
+  if (confirming) return (
+    <button onClick={handleClick} className="bg-red-500/20 text-red-400 border border-red-500/50 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:bg-red-500/30 animate-in fade-in zoom-in">
+      ยืนยัน?
+    </button>
+  );
+
+  return (
+    <button onClick={handleClick} className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+      <Trash2 size={16}/>
+    </button>
+  );
+};
+
+// 🔐 Login Screen
 const LoginScreen = ({ onLogin, onRegister }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
@@ -229,7 +263,7 @@ const LoginScreen = ({ onLogin, onRegister }) => {
   );
 };
 
-// 📝 Detail Modal: Polished
+// 📝 Detail Modal
 const DetailModal = ({ docItem, onClose, onSave }) => {
   const [editSubject, setEditSubject] = useState(docItem.subject || '');
   const [editNote, setEditNote] = useState(docItem.note || '');
