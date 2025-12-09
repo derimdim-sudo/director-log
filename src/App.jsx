@@ -4,7 +4,16 @@ import {
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'; 
+// ✅ เพิ่ม setPersistence และ browserSessionPersistence
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut,
+  setPersistence, 
+  browserSessionPersistence 
+} from 'firebase/auth'; 
 import { 
   BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
@@ -136,7 +145,7 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
   );
 };
 
-// 🗑️ Delete Button (เพิ่มกลับมาแล้ว!)
+// 🗑️ Delete Button
 const DeleteButton = ({ onDelete }) => {
   const [confirming, setConfirming] = useState(false);
   
@@ -605,8 +614,21 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = (email, password) => signInWithEmailAndPassword(auth, email, password);
-  const handleRegister = (email, password) => createUserWithEmailAndPassword(auth, email, password);
+  // ✅ เพิ่ม Session Persistence ให้กับทั้ง Login และ Register
+  const handleLogin = async (email, password) => {
+    // ใช้ setPersistence และ browserSessionPersistence ที่นำเข้ามาจาก firebase/auth
+    // เพื่อตั้งค่าให้ session หมดอายุเมื่อปิดเบราว์เซอร์
+    const { setPersistence, browserSessionPersistence } = await import('firebase/auth'); 
+    await setPersistence(auth, browserSessionPersistence);
+    return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const handleRegister = async (email, password) => {
+    const { setPersistence, browserSessionPersistence } = await import('firebase/auth'); 
+    await setPersistence(auth, browserSessionPersistence);
+    return createUserWithEmailAndPassword(auth, email, password);
+  };
+
   const handleLogout = () => signOut(auth);
 
   if (authChecking) {
