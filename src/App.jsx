@@ -48,9 +48,9 @@ const URGENCY_LEVELS = [
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
 };
 
 // --- Custom Components ---
@@ -75,6 +75,7 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
   const [returnReason, setReturnReason] = useState(docItem.returnReason || '');
   const [saving, setSaving] = useState(false);
 
+  // 🛡️ กันตาย: ถ้าสถานะไม่มี ให้ใช้ค่า default
   const statusConfig = STATUS_LEVELS[docItem.status] || STATUS_LEVELS['pending'];
 
   const handleSave = async () => {
@@ -445,8 +446,8 @@ export default function DirectorBookLog() {
             </div>
           </div>
           <div className="flex gap-3 pr-12 z-10">
-             <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs font-bold hover:bg-zinc-700 hover:text-white hover:border-zinc-500 transition-all shadow-lg"><Download size={16}/> Excel</button>
-             <button onClick={()=>window.print()} className="p-2.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-700 transition-all shadow-lg"><Printer size={18} /></button>
+              <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs font-bold hover:bg-zinc-700 hover:text-white hover:border-zinc-500 transition-all shadow-lg"><Download size={16}/> Excel</button>
+              <button onClick={()=>window.print()} className="p-2.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-700 transition-all shadow-lg"><Printer size={18} /></button>
           </div>
         </header>
 
@@ -503,7 +504,10 @@ export default function DirectorBookLog() {
                         <div className="flex gap-4 pl-4 py-3">
                           <div className="text-center min-w-[50px] flex flex-col justify-center">
                              <div className="bg-zinc-800 w-12 h-12 rounded-xl flex items-center justify-center border border-zinc-700/50 shadow-inner mb-1 group-hover:bg-zinc-700/50 transition-colors">
-                                <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br ${statusConfig.numGradient}`}>{doc.runningNumber || '-'}</span>
+                                {/* ✅ แก้ไขแล้ว: ใช้สีปกติแทนไล่เฉด เพื่อให้เลขแสดงชัดเจน */}
+                                <span className={`text-2xl font-black ${statusConfig.titleColor}`}>
+                                   {doc.runningNumber || '-'}
+                                </span>
                              </div>
                              <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">เลขรับ</div>
                           </div>
