@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
@@ -9,10 +8,10 @@ import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, on
 import { 
   BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
-  Trash2, CheckSquare, RefreshCcw, Sparkles, XCircle,
-  Calendar, Filter, Download, Layers, X, StickyNote,
+  Trash2, CheckSquare, RefreshCcw, XCircle,
+  Calendar, Filter, Download, X, StickyNote,
   ChevronDown, Check, Edit3, AlertTriangle, FileText,
-  LogOut, Lock, UserPlus, FilePlus 
+  LogOut, Lock 
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
@@ -63,34 +62,35 @@ const MourningSash = () => (
   </div>
 );
 
-// 🎨 New Glassy Input
-const GlassInput = ({ ...props }) => (
+// 🎨 Glassy Input Components
+const GlassInput = (props) => (
   <input 
     {...props}
-    className="w-full px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-sm text-zinc-200 focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 focus:bg-black/40 outline-none transition-all placeholder:text-zinc-600 hover:border-white/10"
+    className={`w-full px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-sm text-zinc-200 focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 focus:bg-black/40 outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 ${props.className || ''}`}
   />
 );
 
-const GlassTextArea = ({ ...props }) => (
+const GlassTextArea = (props) => (
   <textarea 
     {...props}
-    className="w-full px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-sm text-zinc-200 focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 focus:bg-black/40 outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 resize-none"
+    className={`w-full px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-sm text-zinc-200 focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 focus:bg-black/40 outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 resize-none ${props.className || ''}`}
   />
 );
 
-// 🔴 CustomSelect: Refined
+// 🔴 CustomSelect: Simplified & Safe (No Portal)
 const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef(null);
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const wrapperRef = useRef(null);
 
-  const toggleOpen = () => {
-    if (!isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setCoords({ top: rect.bottom + 6, left: rect.left, width: rect.width });
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
     }
-    setIsOpen(!isOpen);
-  };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef]);
 
   const getDisplayLabel = () => { 
       const selected = options.find(o => (typeof o === 'string' ? o : o.value) === value); 
@@ -99,11 +99,10 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
   };
 
   return (
-    <div className="space-y-1.5 relative">
+    <div className="space-y-1.5 relative" ref={wrapperRef}>
       {label && <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">{label}</label>}
       <div 
-        ref={triggerRef}
-        onClick={toggleOpen}
+        onClick={() => setIsOpen(!isOpen)}
         className={`w-full px-4 py-3 bg-black/20 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-zinc-500/50 bg-black/40' : 'border-white/5 hover:border-white/10 hover:bg-black/30'}`}
       >
           <div className="flex items-center gap-3 overflow-hidden">
@@ -115,35 +114,29 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
           <ChevronDown size={16} className={`text-zinc-600 transition-transform duration-300 ${isOpen ? 'rotate-180 text-zinc-300' : ''}`} />
       </div>
 
-      {isOpen && createPortal(
-        <>
-          <div className="fixed inset-0 z-[99998] bg-transparent cursor-default" onClick={(e) => { e.stopPropagation(); setIsOpen(false); }} />
-          <div 
-             className="fixed z-[99999] bg-[#121214] border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar backdrop-blur-3xl ring-1 ring-white/5"
-             style={{ top: coords.top, left: coords.left, width: coords.width }}
-          >
-            {options.map((opt, idx) => {
-              const val = typeof opt === 'string' ? opt : opt.value;
-              const lab = typeof opt === 'string' ? opt : opt.label;
-              return (
-                <div 
-                  key={idx} 
-                  onClick={(e) => { e.stopPropagation(); onChange(val); setIsOpen(false); }} 
-                  className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-all ${val === value ? 'bg-zinc-800 text-white font-medium shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
-                >
-                  <span>{lab}</span>
-                  {val === value && <Check size={14} className="text-emerald-400" />}
-                </div>
-              );
-            })}
-          </div>
-        </>, document.body
+      {isOpen && (
+        <div className="absolute z-[50] w-full mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar backdrop-blur-3xl ring-1 ring-white/5">
+          {options.map((opt, idx) => {
+            const val = typeof opt === 'string' ? opt : opt.value;
+            const lab = typeof opt === 'string' ? opt : opt.label;
+            return (
+              <div 
+                key={idx} 
+                onClick={(e) => { e.stopPropagation(); onChange(val); setIsOpen(false); }} 
+                className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-all ${val === value ? 'bg-zinc-800 text-white font-medium shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
+              >
+                <span>{lab}</span>
+                {val === value && <Check size={14} className="text-emerald-400" />}
+              </div>
+            );
+          })}
+        </div>
       )}
     </div>
   );
 };
 
-// 🔐 Login Screen: Polished
+// 🔐 Login Screen: Polished & Safe Icons
 const LoginScreen = ({ onLogin, onRegister }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
@@ -169,7 +162,6 @@ const LoginScreen = ({ onLogin, onRegister }) => {
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden font-sans">
-      {/* Abstract Background */}
       <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-emerald-900/20 rounded-full blur-[120px] pointer-events-none opacity-40"></div>
       <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px] pointer-events-none opacity-40"></div>
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none"></div>
@@ -178,7 +170,10 @@ const LoginScreen = ({ onLogin, onRegister }) => {
         <div className="text-center mb-8">
           <div className="w-20 h-20 bg-gradient-to-br from-zinc-800 to-zinc-900/50 rounded-2xl mx-auto flex items-center justify-center border border-white/5 shadow-2xl mb-5 group">
              {isRegistering ? 
-               <UserPlus size={32} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-transform duration-500 group-hover:scale-110" /> : 
+               <div className="relative">
+                 <User size={32} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-transform duration-500 group-hover:scale-110" />
+                 <div className="absolute -top-1 -right-1 text-emerald-400 text-xs font-bold">+</div>
+               </div> : 
                <Lock size={32} className="text-zinc-400 group-hover:text-white transition-colors duration-500" />
              }
           </div>
@@ -273,7 +268,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
         </div>
 
         <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
-           {/* Status Bar */}
            <div className={`flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/[0.02]`}>
               <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">สถานะปัจจุบัน</span>
               <div className={`flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-lg ${statusConfig.color}`}>
@@ -495,7 +489,7 @@ const Dashboard = ({ user, onLogout }) => {
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-24 custom-scrollbar">
-                {loading ? <div className="flex flex-col items-center justify-center py-32 text-zinc-600 gap-4"><div className="w-8 h-8 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin"></div><p className="text-xs font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-32 text-zinc-700 border-2 border-dashed border-zinc-800/50 rounded-3xl m-4 bg-white/[0.01]"><div className="bg-zinc-800/50 p-4 rounded-full mb-3"><FilePlus size={24} className="text-zinc-600"/></div><p className="text-sm">ไม่พบเอกสาร</p></div> : 
+                {loading ? <div className="flex flex-col items-center justify-center py-32 text-zinc-600 gap-4"><div className="w-8 h-8 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin"></div><p className="text-xs font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-32 text-zinc-700 border-2 border-dashed border-zinc-800/50 rounded-3xl m-4 bg-white/[0.01]"><div className="bg-zinc-800/50 p-4 rounded-full mb-3"><FileText size={24} className="text-zinc-600"/></div><p className="text-sm">ไม่พบเอกสาร</p></div> : 
                   filteredDocs.map(doc => {
                     const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
                     const urgencyStyle = URGENCY_LEVELS.find(u=>u.id===doc.urgency);
