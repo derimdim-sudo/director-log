@@ -48,9 +48,9 @@ const URGENCY_LEVELS = [
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock, numGradient: 'from-zinc-400 to-zinc-600', titleColor: 'text-zinc-200', borderColor: 'border-zinc-800' },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare, numGradient: 'from-emerald-400 to-emerald-600', titleColor: 'text-emerald-400', borderColor: 'border-emerald-900/50' },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw, numGradient: 'from-red-400 to-red-600', titleColor: 'text-red-400', borderColor: 'border-red-900/50' },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-950/30 text-amber-500 ring-1 ring-amber-900/50', icon: Clock },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-950/30 text-emerald-500 ring-1 ring-emerald-900/50', icon: CheckSquare },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-950/30 text-red-500 ring-1 ring-red-900/50', icon: RefreshCcw },
 };
 
 // --- Custom Components ---
@@ -70,13 +70,10 @@ const MourningSash = () => (
 
 // 📝 Detail/Edit Modal
 const DetailModal = ({ docItem, onClose, onSave }) => {
-  const [editSubject, setEditSubject] = useState(docItem.subject || '');
+  const [editSubject, setEditSubject] = useState(docItem.subject);
   const [editNote, setEditNote] = useState(docItem.note || '');
   const [returnReason, setReturnReason] = useState(docItem.returnReason || '');
   const [saving, setSaving] = useState(false);
-
-  // 🛡️ กันตาย: ถ้าสถานะไม่มี ให้ใช้ค่า default
-  const statusConfig = STATUS_LEVELS[docItem.status] || STATUS_LEVELS['pending'];
 
   const handleSave = async () => {
     setSaving(true);
@@ -93,32 +90,28 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-[#18181b] w-full max-w-lg rounded-2xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
-        {/* Header */}
         <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
           <div className="flex items-center gap-3">
              <div className="bg-zinc-800 p-2.5 rounded-xl border border-zinc-700 shadow-inner">
-                <span className="text-2xl font-black text-white tracking-tight">{docItem.runningNumber || '-'}</span>
+                <span className="text-2xl font-black text-white tracking-tight">{docItem.runningNumber}</span>
              </div>
              <div>
                 <h3 className="text-base font-bold text-zinc-200 leading-none">รายละเอียดเอกสาร</h3>
-                <p className="text-[11px] text-zinc-500 mt-1">{docItem.department || 'ไม่ระบุ'}</p>
+                <p className="text-[11px] text-zinc-500 mt-1">{docItem.department}</p>
              </div>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-zinc-800 transition-all"><X size={20}/></button>
         </div>
 
-        {/* Body */}
         <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-           {/* Status Banner */}
-           <div className={`flex items-center justify-between p-3.5 rounded-xl border ${statusConfig.color.replace('ring-1', 'border bg-opacity-20')}`}>
+           <div className={`flex items-center justify-between p-3.5 rounded-xl border ${STATUS_LEVELS[docItem.status]?.color.replace('ring-1', 'border bg-opacity-20')}`}>
               <span className="text-xs font-bold opacity-70 uppercase tracking-wider">สถานะปัจจุบัน</span>
               <div className="flex items-center gap-2 font-bold text-sm">
-                 {statusConfig.icon && React.createElement(statusConfig.icon, { size: 18 })}
-                 {statusConfig.label}
+                 {STATUS_LEVELS[docItem.status]?.icon && React.createElement(STATUS_LEVELS[docItem.status].icon, { size: 18 })}
+                 {STATUS_LEVELS[docItem.status]?.label}
               </div>
            </div>
 
-           {/* Subject (Editable) */}
            <div>
               <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                  <FileText size={14}/> เรื่อง (แก้ไขได้)
@@ -131,7 +124,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {/* Note (Editable) */}
                <div>
                   <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                      <StickyNote size={14}/> หมายเหตุทั่วไป
@@ -144,7 +136,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
                   />
                </div>
                
-               {/* Return Reason (Editable) */}
                <div>
                   <label className="block text-xs font-bold text-red-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                      <AlertTriangle size={14}/> เหตุผลการคืนเรื่อง
@@ -158,14 +149,12 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
                </div>
            </div>
 
-           {/* Meta Info */}
            <div className="pt-4 border-t border-zinc-800/50 flex justify-between text-xs text-zinc-500 font-medium">
               <div className="flex items-center gap-2"><User size={14}/> ผู้รับ: <span className="text-zinc-300">{docItem.receiverName}</span></div>
               <div className="flex items-center gap-2"><Clock size={14}/> ลงรับเมื่อ: <span className="text-zinc-300">{docItem.receivedAt?.toLocaleDateString('th-TH')} {docItem.receivedAt?.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</span></div>
            </div>
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-zinc-800 bg-zinc-900/80 backdrop-blur-sm flex justify-end gap-3">
            <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all border border-transparent hover:border-zinc-700">ยกเลิก</button>
            <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 transition-all shadow-lg hover:shadow-white/10 active:scale-95 flex items-center gap-2">
@@ -241,7 +230,8 @@ export default function DirectorBookLog() {
   const [savedReceivers, setSavedReceivers] = useState([]);
   const [filterTerm, setFilterTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); 
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterDept, setFilterDept] = useState('all'); // New: Dept Filter
   
   // Detail/Edit Modal State
   const [detailDoc, setDetailDoc] = useState(null);
@@ -350,7 +340,11 @@ export default function DirectorBookLog() {
     const matchesTerm = d.subject.toLowerCase().includes(term) || d.department.toLowerCase().includes(term) || (d.runningNumber+'').includes(term);
     let matchesDate = true;
     if (filterDate) { const dx=d.receivedAt; matchesDate = `${dx.getFullYear()}-${String(dx.getMonth()+1).padStart(2,'0')}-${String(dx.getDate()).padStart(2,'0')}` === filterDate; }
-    return matchesTerm && matchesDate && (filterStatus === 'all' || d.status === filterStatus);
+    
+    // Dept Filter
+    const matchesDept = filterDept === 'all' || d.department === filterDept;
+
+    return matchesTerm && matchesDate && (filterStatus === 'all' || d.status === filterStatus) && matchesDept;
   });
 
   const nextRunningNumberDisplay = getNextRunningNumber();
@@ -441,6 +435,12 @@ export default function DirectorBookLog() {
              <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-xl flex gap-3 shrink-0 items-center overflow-x-auto pr-16 shadow-lg">
                 <div className="relative flex-1 min-w-[200px] group"><Search size={18} className="absolute left-3.5 top-2.5 text-zinc-500 group-focus-within:text-zinc-300 transition-colors"/><input className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-900 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-500 focus:border-zinc-500 outline-none transition-all shadow-sm text-zinc-200 font-medium placeholder:text-zinc-600" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
                 <div className="relative min-w-[160px] group"><Calendar size={18} className="absolute left-3.5 top-2.5 text-zinc-500 group-focus-within:text-zinc-300 transition-colors"/><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full pl-10 pr-4 py-2.5 text-sm bg-zinc-900 border border-zinc-800 rounded-xl focus:ring-1 focus:ring-zinc-500 focus:border-zinc-500 outline-none text-zinc-400 font-medium cursor-pointer shadow-sm [color-scheme:dark]" /></div>
+                
+                {/* 🔴 NEW: Dept Filter */}
+                <div className="w-48"><CustomSelect value={filterDept} options={[{ value: 'all', label: 'ทุกหน่วยงาน' }, ...DEPARTMENTS.map(d => ({ value: d, label: d }))]} onChange={setFilterDept} icon={Building2} placeholder="หน่วยงาน" /></div>
+
+                {/* 🔴 NEW: Status Filter */}
+                <div className="w-40"><CustomSelect value={filterStatus} options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ"/></div>
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-4 pb-24">
@@ -453,7 +453,7 @@ export default function DirectorBookLog() {
                         <div className="flex gap-4 pl-4 py-3">
                           <div className="text-center min-w-[50px] flex flex-col justify-center">
                              <div className="bg-zinc-800 w-12 h-12 rounded-xl flex items-center justify-center border border-zinc-700/50 shadow-inner mb-1 group-hover:bg-zinc-700/50 transition-colors">
-                                <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br ${statusConfig.numGradient}`}>{doc.runningNumber}</span>
+                                <span className={`text-2xl font-black bg-clip-text text-transparent bg-gradient-to-br ${statusConfig.numGradient}`}>{doc.runningNumber || '-'}</span>
                              </div>
                              <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wide">เลขรับ</div>
                           </div>
