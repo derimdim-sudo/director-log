@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom'; // ✅ เพิ่ม import createPortal
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'; // ✅ ใช้ signInWithEmailAndPassword ตาม Logic ล็อกอินจริง
 import { 
   BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
   Trash2, CheckSquare, RefreshCcw, Sparkles, XCircle,
   Calendar, Filter, Download, Layers, X, StickyNote,
-  ChevronDown, Check, Edit3, AlertTriangle, FileText
+  ChevronDown, Check, Edit3, AlertTriangle, FileText,
+  LogOut, Lock 
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
@@ -29,7 +31,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = 'director-log-app'; 
 
 // --- Constants ---
 const LAST_OLD_SYSTEM_NUMBER = 338; 
@@ -39,7 +40,6 @@ const DEPARTMENTS = [
   "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
-// ธีมสี: Dark Mode
 const URGENCY_LEVELS = [
   { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700 hover:text-zinc-200' },
   { id: 'urgent', label: 'ด่วน', color: 'bg-orange-950/40 text-orange-400 border-orange-900/50 hover:bg-orange-900/60' },
@@ -68,14 +68,95 @@ const MourningSash = () => (
   </div>
 );
 
-// 📝 Detail/Edit Modal (แก้ไขจุดจอขาว + ขยายขนาด)
+// 🔐 Login Screen Component
+const LoginScreen = ({ onLogin }) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await onLogin(email, password);
+    } catch (err) {
+      console.error(err);
+      setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#09090b] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-800 via-rose-900 to-zinc-800 opacity-50"></div>
+
+      <div className="w-full max-w-md bg-zinc-900/80 backdrop-blur-xl p-8 rounded-2xl border border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-zinc-800 rounded-2xl mx-auto flex items-center justify-center border border-zinc-700 shadow-inner mb-4">
+             <Lock size={32} className="text-zinc-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">เข้าสู่ระบบ</h1>
+          <p className="text-zinc-500 text-sm mt-1">ระบบรับหนังสือเสนอ ผอ.</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 ml-1">Email</label>
+            <input 
+              type="email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 outline-none transition-all shadow-inner"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2 ml-1">Password</label>
+            <input 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 outline-none transition-all shadow-inner"
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-950/30 border border-red-900/50 rounded-xl text-red-400 text-xs text-center flex items-center justify-center gap-2">
+              <AlertTriangle size={14} /> {error}
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-3.5 mt-2 bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "กำลังตรวจสอบ..." : "ยืนยันตัวตน"}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center">
+            <p className="text-[10px] text-zinc-600">
+               © 2025 ทัณฑสถานวัยหนุ่มกลาง | Design by Dream APL
+            </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// 📝 Detail/Edit Modal
 const DetailModal = ({ docItem, onClose, onSave }) => {
   const [editSubject, setEditSubject] = useState(docItem.subject || '');
   const [editNote, setEditNote] = useState(docItem.note || '');
   const [returnReason, setReturnReason] = useState(docItem.returnReason || '');
   const [saving, setSaving] = useState(false);
 
-  // 🛡️ กันตาย: ถ้าสถานะไม่มี ให้ใช้ค่า default
   const statusConfig = STATUS_LEVELS[docItem.status] || STATUS_LEVELS['pending'];
 
   const handleSave = async () => {
@@ -91,14 +172,11 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      {/* 🔴 ขยายขนาด Modal เป็น max-w-3xl (ใหญ่ขึ้น) */}
       <div className="bg-[#18181b] w-full max-w-3xl rounded-2xl border border-zinc-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
-        {/* Header */}
         <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/80">
           <div className="flex items-center gap-4">
              <div className="bg-zinc-800 p-3 rounded-xl border border-zinc-700 shadow-inner">
-                {/* 🛡️ ป้องกันเลขหาย */}
                 <span className="text-3xl font-black text-white tracking-tight">{docItem.runningNumber || '-'}</span>
              </div>
              <div>
@@ -109,9 +187,7 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-zinc-800 transition-all"><X size={24}/></button>
         </div>
 
-        {/* Body */}
         <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
-           {/* Status Banner */}
            <div className={`flex items-center justify-between p-4 rounded-xl border ${statusConfig.color.replace('ring-1', 'border bg-opacity-20')}`}>
               <span className="text-sm font-bold opacity-80 uppercase tracking-wider">สถานะปัจจุบัน</span>
               <div className="flex items-center gap-2 font-bold text-base">
@@ -120,7 +196,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
               </div>
            </div>
 
-           {/* Subject */}
            <div>
               <label className="block text-sm font-bold text-zinc-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                  <FileText size={16}/> เรื่อง (แก้ไขได้)
@@ -133,7 +208,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {/* Note */}
                <div>
                   <label className="block text-sm font-bold text-zinc-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                      <StickyNote size={16}/> หมายเหตุทั่วไป
@@ -146,7 +220,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
                   />
                </div>
                
-               {/* Return Reason */}
                <div>
                   <label className="block text-sm font-bold text-red-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                      <AlertTriangle size={16}/> เหตุผลการคืนเรื่อง
@@ -160,14 +233,12 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
                </div>
            </div>
 
-           {/* Meta Info */}
            <div className="pt-6 border-t border-zinc-800/50 flex justify-between text-sm text-zinc-500 font-medium">
               <div className="flex items-center gap-2"><User size={16}/> ผู้รับ: <span className="text-zinc-300">{docItem.receiverName}</span></div>
               <div className="flex items-center gap-2"><Clock size={16}/> ลงรับเมื่อ: <span className="text-zinc-300">{docItem.receivedAt?.toLocaleDateString('th-TH')} {docItem.receivedAt?.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})} น.</span></div>
            </div>
         </div>
 
-        {/* Footer */}
         <div className="p-5 border-t border-zinc-800 bg-zinc-900/80 backdrop-blur-sm flex justify-end gap-3">
            <button onClick={onClose} className="px-6 py-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all border border-transparent hover:border-zinc-700">ยกเลิก</button>
            <button onClick={handleSave} disabled={saving} className="px-8 py-3 rounded-xl text-sm font-bold bg-white text-black hover:bg-zinc-200 transition-all shadow-lg hover:shadow-white/10 active:scale-95 flex items-center gap-2">
@@ -180,19 +251,27 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
   );
 };
 
-// 🔴 CustomSelect ที่อัปเกรดแล้ว (Floating Fixed Position)
+// 🔴 CustomSelect แบบใหม่: ใช้ Portal (Floating แบบทะลุ Layer)
 const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef(null); // ใช้ Ref จับตำแหน่งปุ่ม
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null); // Ref สำหรับตัว Dropdown
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-       if (triggerRef.current && !triggerRef.current.contains(event.target)) {
+       // ตรวจสอบว่าคลิกอยู่นอกปุ่ม Trigger และนอกตัว Dropdown หรือไม่
+       if (
+         triggerRef.current && 
+         !triggerRef.current.contains(event.target) &&
+         dropdownRef.current &&
+         !dropdownRef.current.contains(event.target)
+       ) {
           setIsOpen(false);
        }
     };
-    // Update position on scroll/resize
+
+    // คำนวณตำแหน่งใหม่เมื่อ Scroll หรือ Resize
     const updatePosition = () => {
        if (isOpen && triggerRef.current) {
           const rect = triggerRef.current.getBoundingClientRect();
@@ -229,6 +308,22 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   const getDisplayLabel = () => { const s = options.find(o => (typeof o === 'string' ? o : o.value) === value); return typeof s === 'string' ? s : s?.label; };
 
+  // 🪄 Dropdown Content ที่จะถูกส่งไป Render ที่ document.body
+  const dropdownContent = (
+    <div 
+       ref={dropdownRef}
+       className="fixed z-[99999] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black/50 max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar"
+       style={{ top: coords.top, left: coords.left, width: coords.width }}
+    >
+      {options.map((opt, idx) => (
+        <div key={idx} onClick={(e) => { e.stopPropagation(); onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold shadow-inner':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
+          <span>{typeof opt === 'string' ? opt : opt.label}</span>
+          {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-emerald-400" />}
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-1.5">
       {label && <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider ml-1">{label}</label>}
@@ -236,7 +331,7 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
       <div 
         ref={triggerRef}
         onClick={toggleOpen}
-        className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}
+        className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}
       >
           <div className="flex items-center gap-3 overflow-hidden">
              {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
@@ -245,20 +340,8 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
           <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
       </div>
 
-      {/* 🔴 Dropdown Menu (Fixed Position - ลอยเหนือทุกอย่าง) */}
-      {isOpen && (
-        <div 
-           className="fixed z-[99999] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200"
-           style={{ top: coords.top, left: coords.left, width: coords.width }}
-        >
-          {options.map((opt, idx) => (
-            <div key={idx} onClick={(e) => { e.stopPropagation(); onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold shadow-inner':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
-              <span>{typeof opt === 'string' ? opt : opt.label}</span>
-              {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-emerald-400" />}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* ✅ ใช้ Portal ส่ง Dropdown ไปลอยที่ Body */}
+      {isOpen && createPortal(dropdownContent, document.body)}
     </div>
   );
 };
@@ -271,9 +354,8 @@ const DeleteButton = ({ onDelete }) => {
   return <button onClick={handleClick} className="text-zinc-600 hover:text-red-500 p-1.5 transition-all mt-auto hover:bg-zinc-800 rounded"><Trash2 size={16}/></button>;
 };
 
-// --- Main App ---
-export default function DirectorBookLog() {
-  const [user, setUser] = useState(null);
+// 🏠 Dashboard Component
+const Dashboard = ({ user, onLogout }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -297,10 +379,8 @@ export default function DirectorBookLog() {
   const [detailDoc, setDetailDoc] = useState(null);
 
   useEffect(() => {
-    signInAnonymously(auth).catch((err) => console.error(err));
     const saved = localStorage.getItem('director_book_log_receivers');
     if (saved) try { setSavedReceivers(JSON.parse(saved)); } catch (e) {}
-    return onAuthStateChanged(auth, (u) => setUser(u));
   }, []);
 
   useEffect(() => {
@@ -312,7 +392,7 @@ export default function DirectorBookLog() {
       setDocuments(docs);
       setLoading(false);
     });
-  }, [user]);
+  }, []);
 
   const getNextRunningNumber = () => Math.max(documents.reduce((max, doc) => Math.max(max, doc.runningNumber || 0), 0), LAST_OLD_SYSTEM_NUMBER) + 1;
 
@@ -339,7 +419,7 @@ export default function DirectorBookLog() {
       await Promise.race([
         addDoc(collection(db, 'director_submissions'), {
           runningNumber: nextNum, subject, department, urgency, receiverName, note, 
-          status: 'pending', receivedAt: serverTimestamp(), submittedBy: user?.uid || 'anon'
+          status: 'pending', receivedAt: serverTimestamp(), submittedBy: user?.uid || 'admin'
         }), timeoutPromise
       ]);
 
@@ -374,8 +454,7 @@ export default function DirectorBookLog() {
   const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
   const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-bold transition-all shadow-sm ${l.color}`}>{l.label}</span> };
-  const getStatusBadge = (key) => { const s = STATUS_LEVELS[key] || STATUS_LEVELS['pending']; const I = s.icon; return <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold cursor-pointer select-none transition-all hover:shadow-[0_0_10px_rgba(255,255,255,0.1)] hover:scale-105 active:scale-95 whitespace-nowrap ${s.color}`}><I size={14} />{s.label}</div>; };
-  const handlePrint = () => window.print();
+  
   const handleExportExcel = () => { 
     const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงานเจ้าของเรื่อง,ผู้รับ,หมายเหตุ,เหตุผลการคืน,สถานะ\n";
     const csvRows = filteredDocs.map(doc => {
@@ -403,8 +482,6 @@ export default function DirectorBookLog() {
     return matchesTerm && matchesDate && (filterStatus === 'all' || d.status === filterStatus);
   });
 
-  const nextRunningNumberDisplay = getNextRunningNumber();
-
   return (
     <>
       <style>{`
@@ -420,10 +497,8 @@ export default function DirectorBookLog() {
         }
       `}</style>
       
-      {/* 🎗️ แถบคาดโบว์ดำไว้อาลัย (Sash) */}
       <MourningSash />
       
-      {/* Detail/Edit Modal */}
       {detailDoc && (
         <DetailModal 
           docItem={detailDoc} 
@@ -435,7 +510,7 @@ export default function DirectorBookLog() {
       {/* 🔴 Layout หลัก: Dark Mode */}
       <div className="h-screen flex flex-col bg-[#09090b] font-sans text-zinc-300 overflow-hidden selection:bg-zinc-700 selection:text-white relative">
         
-        {/* Header: Metallic Silver Gradient */}
+        {/* Header */}
         <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b border-zinc-700/50 shrink-0 z-30 shadow-lg shadow-black/50 h-16 flex items-center justify-between px-6 no-print relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/5 to-transparent pointer-events-none"></div>
           <div className="flex items-center gap-3 z-10">
@@ -445,16 +520,23 @@ export default function DirectorBookLog() {
               <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-1">ทัณฑสถานวัยหนุ่มกลาง</p>
             </div>
           </div>
-          <div className="flex gap-3 pr-12 z-10">
+          <div className="flex gap-3 pr-4 z-10 items-center">
               <button onClick={handleExportExcel} className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 text-xs font-bold hover:bg-zinc-700 hover:text-white hover:border-zinc-500 transition-all shadow-lg"><Download size={16}/> Excel</button>
               <button onClick={()=>window.print()} className="p-2.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-700 transition-all shadow-lg"><Printer size={18} /></button>
+              
+              <div className="w-[1px] h-6 bg-zinc-700 mx-1"></div>
+              
+              {/* Logout Button */}
+              <button onClick={onLogout} className="flex items-center gap-2 px-4 py-2 bg-red-950/30 border border-red-900/50 rounded-full text-red-400 text-xs font-bold hover:bg-red-900 hover:text-white hover:border-red-500 transition-all shadow-lg group">
+                <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform" /> ออกจากระบบ
+              </button>
           </div>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* Left Panel (Form): Dark Metallic Panel */}
+          {/* Left Panel (Form) */}
           <div className="w-[380px] min-w-[380px] bg-[#121214] border-r border-zinc-800 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.5)] z-20 no-print relative">
              <div className="p-5 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm flex justify-between items-center shrink-0 sticky top-0">
                <h2 className="font-bold text-zinc-300 flex items-center gap-2.5 text-sm"><div className="bg-zinc-800 p-1.5 rounded-lg text-zinc-400 border border-zinc-700"><PenTool size={16}/></div> ลงรับหนังสือใหม่</h2>
@@ -504,7 +586,7 @@ export default function DirectorBookLog() {
                         <div className="flex gap-4 pl-4 py-3">
                           <div className="text-center min-w-[50px] flex flex-col justify-center">
                              <div className="bg-zinc-800 w-12 h-12 rounded-xl flex items-center justify-center border border-zinc-700/50 shadow-inner mb-1 group-hover:bg-zinc-700/50 transition-colors">
-                                {/* ✅ แก้ไขแล้ว: ใช้สีปกติแทนไล่เฉด เพื่อให้เลขแสดงชัดเจน */}
+                                {/* ✅ Fix: ใช้สีปกติเพื่อให้เลขแสดงชัดเจน */}
                                 <span className={`text-2xl font-black ${statusConfig.titleColor}`}>
                                    {doc.runningNumber || '-'}
                                 </span>
@@ -554,7 +636,7 @@ export default function DirectorBookLog() {
           </div>
         </div>
 
-        {/* 🟢 Credit Footer: Signature with Red Glow Effect */}
+        {/* 🟢 Credit Footer */}
         <div className="fixed bottom-3 right-4 z-[100] pointer-events-auto select-none no-print group">
            <div className="bg-black/60 backdrop-blur-md border border-white/5 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 transition-all duration-500 hover:bg-black/80 hover:border-rose-900/50 cursor-default relative overflow-hidden">
                <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-rose-500/5 blur-md"></div>
@@ -571,4 +653,43 @@ export default function DirectorBookLog() {
       </div>
     </>
   );
+}
+
+// 🌟 Main App Component
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [authChecking, setAuthChecking] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthChecking(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogin = (email, password) => {
+    return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const handleLogout = () => {
+    signOut(auth);
+  };
+
+  if (authChecking) {
+    return (
+      <div className="h-screen bg-[#09090b] flex items-center justify-center">
+         <div className="flex flex-col items-center gap-4">
+             <div className="w-12 h-12 border-4 border-zinc-800 border-t-emerald-500 rounded-full animate-spin"></div>
+             <p className="text-zinc-500 text-sm animate-pulse">กำลังเข้าสู่ระบบ...</p>
+         </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  return <Dashboard user={user} onLogout={handleLogout} />;
 }
