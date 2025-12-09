@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom'; // ✅ เพิ่ม import createPortal
+import { createPortal } from 'react-dom';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'; // ✅ ใช้ signInWithEmailAndPassword ตาม Logic ล็อกอินจริง
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'; 
 import { 
   BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
   Trash2, CheckSquare, RefreshCcw, Sparkles, XCircle,
   Calendar, Filter, Download, Layers, X, StickyNote,
   ChevronDown, Check, Edit3, AlertTriangle, FileText,
-  LogOut, Lock 
+  LogOut, Lock, UserPlus 
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
@@ -55,7 +55,6 @@ const STATUS_LEVELS = {
 
 // --- Custom Components ---
 
-// 🎗️ Mourning Sash
 const MourningSash = () => (
   <div className="fixed top-0 right-0 z-[9998] pointer-events-none w-24 h-24 overflow-hidden">
     <div className="absolute top-0 right-0 w-[150%] h-8 bg-[#000000] transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-[0_0_15px_rgba(0,0,0,1)] flex items-center justify-center border-b border-zinc-800">
@@ -68,8 +67,90 @@ const MourningSash = () => (
   </div>
 );
 
+// 🔴 CustomSelect: แก้ไขใหม่! รองรับทั้ง String และ Object + ใช้ Portal
+const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+
+  const toggleOpen = () => {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setCoords({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
+  // Logic การแสดงผล (รองรับทั้ง Array String และ Array Object)
+  const getDisplayLabel = () => { 
+      const selected = options.find(o => (typeof o === 'string' ? o : o.value) === value); 
+      if (!selected) return placeholder;
+      return typeof selected === 'string' ? selected : selected.label;
+  };
+
+  return (
+    <div className="space-y-1.5 relative">
+      {label && <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider ml-1">{label}</label>}
+      
+      {/* Trigger Button */}
+      <div 
+        ref={triggerRef}
+        onClick={toggleOpen}
+        className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}
+      >
+          <div className="flex items-center gap-3 overflow-hidden">
+             {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
+             <span className={`truncate font-medium ${value === 'all' || !value ? 'text-zinc-500' : 'text-zinc-200'}`}>
+                {getDisplayLabel()}
+             </span>
+          </div>
+          <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
+      </div>
+
+      {/* Portal: ย้ายไป Render ที่ Body */}
+      {isOpen && createPortal(
+        <>
+          <div 
+            className="fixed inset-0 z-[99998] bg-transparent cursor-default" 
+            onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+          />
+          <div 
+             className="fixed z-[99999] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black/80 max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar"
+             style={{ top: coords.top, left: coords.left, width: coords.width }}
+          >
+            {options.map((opt, idx) => {
+              const val = typeof opt === 'string' ? opt : opt.value;
+              const lab = typeof opt === 'string' ? opt : opt.label;
+              return (
+                <div 
+                  key={idx} 
+                  onClick={(e) => { 
+                      e.stopPropagation(); 
+                      onChange(val); 
+                      setIsOpen(false); 
+                  }} 
+                  className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${val === value ? 'bg-zinc-800 text-white font-bold shadow-inner' : 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}
+                >
+                  <span>{lab}</span>
+                  {val === value && <Check size={14} className="text-emerald-400" />}
+                </div>
+              );
+            })}
+          </div>
+        </>,
+        document.body
+      )}
+    </div>
+  );
+};
+
 // 🔐 Login Screen Component
-const LoginScreen = ({ onLogin }) => {
+const LoginScreen = ({ onLogin, onRegister }) => {
+  const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -80,10 +161,20 @@ const LoginScreen = ({ onLogin }) => {
     setLoading(true);
     setError(null);
     try {
-      await onLogin(email, password);
+      if (isRegistering) {
+        await onRegister(email, password);
+      } else {
+        await onLogin(email, password);
+      }
     } catch (err) {
       console.error(err);
-      setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      if (err.code === 'auth/email-already-in-use') {
+        setError("อีเมลนี้มีผู้ใช้งานแล้ว");
+      } else if (err.code === 'auth/weak-password') {
+        setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
+      } else {
+        setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+      }
     } finally {
       setLoading(false);
     }
@@ -94,12 +185,14 @@ const LoginScreen = ({ onLogin }) => {
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-zinc-800 via-rose-900 to-zinc-800 opacity-50"></div>
 
-      <div className="w-full max-w-md bg-zinc-900/80 backdrop-blur-xl p-8 rounded-2xl border border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10">
+      <div className="w-full max-w-md bg-zinc-900/80 backdrop-blur-xl p-8 rounded-2xl border border-zinc-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10 transition-all duration-300">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-zinc-800 rounded-2xl mx-auto flex items-center justify-center border border-zinc-700 shadow-inner mb-4">
-             <Lock size={32} className="text-zinc-400" />
+          <div className="w-16 h-16 bg-zinc-800 rounded-2xl mx-auto flex items-center justify-center border border-zinc-700 shadow-inner mb-4 transition-transform hover:scale-105">
+             {isRegistering ? <UserPlus size={32} className="text-emerald-400" /> : <Lock size={32} className="text-zinc-400" />}
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">เข้าสู่ระบบ</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            {isRegistering ? "ลงทะเบียนผู้ใช้งานใหม่" : "เข้าสู่ระบบ"}
+          </h1>
           <p className="text-zinc-500 text-sm mt-1">ระบบรับหนังสือเสนอ ผอ.</p>
         </div>
 
@@ -111,6 +204,7 @@ const LoginScreen = ({ onLogin }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 outline-none transition-all shadow-inner"
+              placeholder={isRegistering ? "ตัวอย่าง: admin@prison.go.th" : ""}
               required
             />
           </div>
@@ -121,12 +215,13 @@ const LoginScreen = ({ onLogin }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-200 focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 outline-none transition-all shadow-inner"
+              placeholder={isRegistering ? "อย่างน้อย 6 ตัวอักษร" : ""}
               required
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-950/30 border border-red-900/50 rounded-xl text-red-400 text-xs text-center flex items-center justify-center gap-2">
+            <div className="p-3 bg-red-950/30 border border-red-900/50 rounded-xl text-red-400 text-xs text-center flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-1">
               <AlertTriangle size={14} /> {error}
             </div>
           )}
@@ -134,11 +229,24 @@ const LoginScreen = ({ onLogin }) => {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-3.5 mt-2 bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`w-full py-3.5 mt-2 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isRegistering 
+                ? "bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-600 hover:to-emerald-500"
+                : "bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500"
+            }`}
           >
-            {loading ? "กำลังตรวจสอบ..." : "ยืนยันตัวตน"}
+            {loading ? "กำลังดำเนินการ..." : (isRegistering ? "ยืนยันการสมัคร" : "ยืนยันตัวตน")}
           </button>
         </form>
+
+        <div className="mt-6 pt-6 border-t border-zinc-800 text-center">
+            <button 
+                onClick={() => { setIsRegistering(!isRegistering); setError(null); }}
+                className="text-xs text-zinc-400 hover:text-white underline transition-colors"
+            >
+                {isRegistering ? "มีบัญชีอยู่แล้ว? กลับไปหน้าเข้าสู่ระบบ" : "ยังไม่มีบัญชี? กดที่นี่เพื่อลงทะเบียน"}
+            </button>
+        </div>
 
         <div className="mt-8 text-center">
             <p className="text-[10px] text-zinc-600">
@@ -150,11 +258,12 @@ const LoginScreen = ({ onLogin }) => {
   );
 };
 
-// 📝 Detail/Edit Modal
+// 📝 Detail/Edit Modal (เพิ่มจุดแก้ไขหน่วยงาน)
 const DetailModal = ({ docItem, onClose, onSave }) => {
   const [editSubject, setEditSubject] = useState(docItem.subject || '');
   const [editNote, setEditNote] = useState(docItem.note || '');
   const [returnReason, setReturnReason] = useState(docItem.returnReason || '');
+  const [editDepartment, setEditDepartment] = useState(docItem.department || DEPARTMENTS[0]); // ✅ เพิ่ม state แก้ไขหน่วยงาน
   const [saving, setSaving] = useState(false);
 
   const statusConfig = STATUS_LEVELS[docItem.status] || STATUS_LEVELS['pending'];
@@ -164,7 +273,8 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
     await onSave(docItem.id, { 
         subject: editSubject, 
         note: editNote,
-        returnReason: returnReason
+        returnReason: returnReason,
+        department: editDepartment // ✅ บันทึกค่าหน่วยงานใหม่
     });
     setSaving(false);
     onClose();
@@ -181,7 +291,9 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
              </div>
              <div>
                 <h3 className="text-lg font-bold text-zinc-100 leading-none">รายละเอียดเอกสาร</h3>
-                <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2"><Building2 size={12}/> {docItem.department || 'ไม่ระบุ'}</p>
+                <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2">
+                  <span className="bg-zinc-800 px-2 py-0.5 rounded text-xs border border-zinc-700">{docItem.department || 'ไม่ระบุ'}</span>
+                </p>
              </div>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-zinc-800 transition-all"><X size={24}/></button>
@@ -196,6 +308,7 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
               </div>
            </div>
 
+           {/* Subject */}
            <div>
               <label className="block text-sm font-bold text-zinc-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
                  <FileText size={16}/> เรื่อง (แก้ไขได้)
@@ -203,7 +316,21 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
               <textarea 
                 value={editSubject} 
                 onChange={(e) => setEditSubject(e.target.value)}
-                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl text-base text-zinc-100 focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none min-h-[100px] resize-none leading-relaxed shadow-inner"
+                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl text-base text-zinc-100 focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500 outline-none min-h-[80px] resize-none leading-relaxed shadow-inner"
+              />
+           </div>
+
+           {/* ✅ Department Edit (เพิ่มใหม่) */}
+           <div>
+              <label className="block text-sm font-bold text-zinc-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2">
+                 <Building2 size={16}/> หน่วยงานเจ้าของเรื่อง (แก้ไขได้)
+              </label>
+              <CustomSelect 
+                  value={editDepartment} 
+                  options={DEPARTMENTS} 
+                  onChange={setEditDepartment} 
+                  icon={Building2} 
+                  placeholder="เลือกหน่วยงาน..." 
               />
            </div>
 
@@ -247,101 +374,6 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
            </button>
         </div>
       </div>
-    </div>
-  );
-};
-
-// 🔴 CustomSelect แบบใหม่: ใช้ Portal (Floating แบบทะลุ Layer)
-const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const triggerRef = useRef(null);
-  const dropdownRef = useRef(null); // Ref สำหรับตัว Dropdown
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-       // ตรวจสอบว่าคลิกอยู่นอกปุ่ม Trigger และนอกตัว Dropdown หรือไม่
-       if (
-         triggerRef.current && 
-         !triggerRef.current.contains(event.target) &&
-         dropdownRef.current &&
-         !dropdownRef.current.contains(event.target)
-       ) {
-          setIsOpen(false);
-       }
-    };
-
-    // คำนวณตำแหน่งใหม่เมื่อ Scroll หรือ Resize
-    const updatePosition = () => {
-       if (isOpen && triggerRef.current) {
-          const rect = triggerRef.current.getBoundingClientRect();
-          setCoords({
-             top: rect.bottom + 8,
-             left: rect.left,
-             width: rect.width
-          });
-       }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("scroll", updatePosition, true);
-    window.addEventListener("resize", updatePosition);
-    
-    return () => {
-       document.removeEventListener("mousedown", handleClickOutside);
-       window.removeEventListener("scroll", updatePosition, true);
-       window.removeEventListener("resize", updatePosition);
-    };
-  }, [isOpen]);
-
-  const toggleOpen = () => {
-     if (!isOpen && triggerRef.current) {
-        const rect = triggerRef.current.getBoundingClientRect();
-        setCoords({
-           top: rect.bottom + 8,
-           left: rect.left,
-           width: rect.width
-        });
-     }
-     setIsOpen(!isOpen);
-  };
-
-  const getDisplayLabel = () => { const s = options.find(o => (typeof o === 'string' ? o : o.value) === value); return typeof s === 'string' ? s : s?.label; };
-
-  // 🪄 Dropdown Content ที่จะถูกส่งไป Render ที่ document.body
-  const dropdownContent = (
-    <div 
-       ref={dropdownRef}
-       className="fixed z-[99999] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl shadow-black/50 max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar"
-       style={{ top: coords.top, left: coords.left, width: coords.width }}
-    >
-      {options.map((opt, idx) => (
-        <div key={idx} onClick={(e) => { e.stopPropagation(); onChange(typeof opt === 'string' ? opt : opt.value); setIsOpen(false); }} className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-colors ${((typeof opt==='string'?opt:opt.value)===value)?'bg-zinc-800 text-white font-bold shadow-inner':'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}`}>
-          <span>{typeof opt === 'string' ? opt : opt.label}</span>
-          {(typeof opt === 'string' ? opt : opt.value) === value && <Check size={14} className="text-emerald-400" />}
-        </div>
-      ))}
-    </div>
-  );
-
-  return (
-    <div className="space-y-1.5">
-      {label && <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider ml-1">{label}</label>}
-      
-      <div 
-        ref={triggerRef}
-        onClick={toggleOpen}
-        className={`w-full px-3 py-3 bg-zinc-900 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-zinc-500 ring-1 ring-zinc-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'border-zinc-800 hover:border-zinc-600 hover:bg-zinc-800'}`}
-      >
-          <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && <div className={`p-1.5 rounded-md transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-500 group-hover:text-zinc-300'}`}><Icon size={14} /></div>}
-             <span className={`truncate font-medium ${!getDisplayLabel() ? 'text-zinc-600' : 'text-zinc-300'}`}>{getDisplayLabel() || placeholder}</span>
-          </div>
-          <ChevronDown size={16} className={`text-zinc-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : ''}`} />
-      </div>
-
-      {/* ✅ ใช้ Portal ส่ง Dropdown ไปลอยที่ Body */}
-      {isOpen && createPortal(dropdownContent, document.body)}
     </div>
   );
 };
@@ -655,7 +687,7 @@ const Dashboard = ({ user, onLogout }) => {
   );
 }
 
-// 🌟 Main App Component
+// 🌟 Main App Component (Updated Login/Register Logic)
 export default function App() {
   const [user, setUser] = useState(null);
   const [authChecking, setAuthChecking] = useState(true);
@@ -670,6 +702,10 @@ export default function App() {
 
   const handleLogin = (email, password) => {
     return signInWithEmailAndPassword(auth, email, password);
+  };
+
+  const handleRegister = (email, password) => {
+    return createUserWithEmailAndPassword(auth, email, password);
   };
 
   const handleLogout = () => {
@@ -688,7 +724,8 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginScreen onLogin={handleLogin} />;
+    // ส่งทั้ง handleLogin และ handleRegister ไปให้ LoginScreen
+    return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;
   }
 
   return <Dashboard user={user} onLogout={handleLogout} />;
