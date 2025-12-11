@@ -4,7 +4,6 @@ import {
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-// ✅ นำเข้า setPersistence และ browserSessionPersistence โดยตรง
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
@@ -48,53 +47,53 @@ const DEPARTMENTS = [
   "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
-// Theme Colors (Modern Dark Neon)
+// Theme Colors (Midnight Glass)
 const URGENCY_LEVELS = [
-  { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800/40 text-zinc-400 border-zinc-700/50 hover:bg-zinc-700/50 hover:text-zinc-200' },
-  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)]' },
-  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]' },
-  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-rose-600/20 text-rose-300 border-rose-500/40 hover:bg-rose-600/30 hover:shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-pulse-slow' }
+  { id: 'normal', label: 'ปกติ', color: 'bg-slate-700/40 text-slate-300 border-slate-600/50 hover:bg-slate-600/50 hover:text-slate-100' },
+  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-500/10 text-orange-300 border-orange-500/30 hover:bg-orange-500/20' },
+  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-500/10 text-red-300 border-red-500/30 hover:bg-red-500/20' },
+  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-rose-500/20 text-rose-200 border-rose-500/40 hover:bg-rose-500/30 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse-slow' }
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-400/10 text-amber-400 border-amber-400/20', icon: Clock, titleColor: 'text-zinc-100', borderColor: 'border-amber-500/50' },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20', icon: CheckSquare, titleColor: 'text-emerald-400', borderColor: 'border-emerald-500/50' },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-400/10 text-red-400 border-red-400/20', icon: RefreshCcw, titleColor: 'text-red-400', borderColor: 'border-red-500/50' },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-500/10 text-amber-400 border-amber-500/30', icon: Clock, titleColor: 'text-slate-100', borderColor: 'border-amber-500/50' },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', icon: CheckSquare, titleColor: 'text-emerald-400', borderColor: 'border-emerald-500/50' },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-500/10 text-red-400 border-red-500/30', icon: RefreshCcw, titleColor: 'text-red-400', borderColor: 'border-red-500/50' },
 };
 
 // --- Custom Components ---
 
-// ✅ เพิ่ม MourningSash กลับมาแล้วครับ
 const MourningSash = () => (
-  <div className="fixed top-0 right-0 z-[9998] pointer-events-none w-24 h-24 overflow-hidden mix-blend-overlay opacity-80">
-    <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-2xl flex items-center justify-center border-b border-white/5">
-       <div className="w-3 h-3 bg-zinc-800/50 rounded-full shadow-inner ring-1 ring-white/10" />
+  <div className="fixed top-0 right-0 z-[9998] pointer-events-none w-24 h-24 overflow-hidden mix-blend-overlay opacity-60">
+    <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-2xl flex items-center justify-center border-b border-white/10">
+       <div className="w-2 h-2 bg-slate-500 rounded-full shadow-inner ring-1 ring-white/20" />
     </div>
   </div>
 );
 
-// 🎨 Glassy Components
-const GlassCard = ({ children, className = "" }) => (
-  <div className={`bg-[#18181b]/60 backdrop-blur-xl border border-white/5 shadow-xl rounded-2xl ${className}`}>
-    {children}
-  </div>
-);
-
+// 🎨 Midnight Glass Inputs
 const GlassInput = (props) => (
   <input 
     {...props}
-    className={`w-full px-4 py-3 bg-[#09090b]/50 border border-white/5 rounded-xl text-sm text-zinc-100 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 focus:bg-[#09090b] outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 ${props.className || ''}`}
+    className={`w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-sm text-slate-200 focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 focus:bg-slate-900/60 outline-none transition-all placeholder:text-slate-500 hover:border-slate-600/60 shadow-inner ${props.className || ''}`}
   />
 );
 
 const GlassTextArea = (props) => (
   <textarea 
     {...props}
-    className={`w-full px-4 py-3 bg-[#09090b]/50 border border-white/5 rounded-xl text-sm text-zinc-100 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 focus:bg-[#09090b] outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 resize-none ${props.className || ''}`}
+    className={`w-full px-4 py-3 bg-slate-900/40 border border-slate-700/50 rounded-xl text-sm text-slate-200 focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 focus:bg-slate-900/60 outline-none transition-all placeholder:text-slate-500 hover:border-slate-600/60 resize-none shadow-inner ${props.className || ''}`}
   />
 );
 
-// Custom Select with modern styling
+// 🎨 Midnight Glass Card
+const GlassCard = ({ children, className = "" }) => (
+  <div className={`bg-slate-900/60 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] rounded-2xl ${className}`}>
+    {children}
+  </div>
+);
+
+// Custom Select - Midnight Style
 const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
@@ -115,22 +114,22 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   return (
     <div className="space-y-1.5 relative" ref={wrapperRef}>
-      {label && <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">{label}</label>}
+      {label && <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">{label}</label>}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-3 bg-[#09090b]/50 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-indigo-500/50 ring-2 ring-indigo-500/20 bg-[#09090b]' : 'border-white/5 hover:border-white/10 hover:bg-[#09090b]/80'}`}
+        className={`w-full px-4 py-3 bg-slate-900/40 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group shadow-sm ${isOpen ? 'border-indigo-500/60 ring-1 ring-indigo-500/30 bg-slate-900/70' : 'border-slate-700/50 hover:border-slate-600 hover:bg-slate-900/60'}`}
       >
           <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && <Icon size={16} className={`transition-colors ${isOpen ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-300'}`} />}
-             <span className={`truncate font-medium ${value === 'all' || !value ? 'text-zinc-500' : 'text-zinc-200'}`}>
+             {Icon && <Icon size={16} className={`transition-colors ${isOpen ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}`} />}
+             <span className={`truncate font-medium ${value === 'all' || !value ? 'text-slate-500' : 'text-slate-200'}`}>
                 {getDisplayLabel()}
              </span>
           </div>
-          <ChevronDown size={16} className={`text-zinc-600 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-400' : ''}`} />
+          <ChevronDown size={16} className={`text-slate-500 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-400' : ''}`} />
       </div>
 
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar backdrop-blur-3xl ring-1 ring-white/5">
+        <div className="absolute z-[100] w-full mt-2 bg-[#0f172a] border border-slate-700/50 rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9)] max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar ring-1 ring-white/5">
           {options.map((opt, idx) => {
             const val = typeof opt === 'string' ? opt : opt.value;
             const lab = typeof opt === 'string' ? opt : opt.label;
@@ -138,7 +137,7 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
               <div 
                 key={idx} 
                 onClick={(e) => { e.stopPropagation(); onChange(val); setIsOpen(false); }} 
-                className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-all ${val === value ? 'bg-indigo-600/20 text-indigo-300 font-medium' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
+                className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-all ${val === value ? 'bg-indigo-500/20 text-indigo-200 font-medium border border-indigo-500/20' : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'}`}
               >
                 <span>{lab}</span>
                 {val === value && <Check size={14} className="text-indigo-400" />}
@@ -157,18 +156,18 @@ const DeleteButton = ({ onDelete }) => {
   const handleClick = (e) => { e.stopPropagation(); if (confirming) { onDelete(); setConfirming(false); } else { setConfirming(true); } };
 
   if (confirming) return (
-    <button onClick={handleClick} className="bg-red-500/20 text-red-400 border border-red-500/50 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:bg-red-500/30 animate-in fade-in zoom-in shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-      ยืนยันลบ?
+    <button onClick={handleClick} className="bg-red-500/10 text-red-300 border border-red-500/30 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:bg-red-500/20 animate-in fade-in zoom-in">
+      ยืนยัน?
     </button>
   );
   return (
-    <button onClick={handleClick} className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+    <button onClick={handleClick} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
       <Trash2 size={16}/>
     </button>
   );
 };
 
-// 🔐 Login Screen: Ultra Modern
+// 🔐 Login Screen
 const LoginScreen = ({ onLogin, onRegister }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
@@ -181,14 +180,12 @@ const LoginScreen = ({ onLogin, onRegister }) => {
     setLoading(true);
     setError(null);
     try {
-      // ✅ ตั้งค่า Persistence ที่นี่ เพื่อความชัวร์ (จำแค่ปิด Browser)
       await setPersistence(auth, browserSessionPersistence);
-      
       if (isRegistering) await onRegister(email, password);
       else await onLogin(email, password);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') setError("อีเมลนี้มีผู้ใช้งานแล้ว");
-      else if (err.code === 'auth/weak-password') setError("รหัสผ่านสั้นเกินไป (ต้อง 6 ตัวขึ้นไป)");
+      else if (err.code === 'auth/weak-password') setError("รหัสผ่านสั้นเกินไป");
       else setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     } finally {
       setLoading(false);
@@ -196,39 +193,35 @@ const LoginScreen = ({ onLogin, onRegister }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden font-sans selection:bg-indigo-500/30">
-      {/* Background Ambience */}
-      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none"></div>
+    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-4 relative overflow-hidden font-sans">
+      {/* Aurora Background */}
+      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen opacity-40"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen opacity-40"></div>
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
 
-      <div className="w-full max-w-sm bg-[#121214]/80 backdrop-blur-3xl p-8 rounded-[2rem] border border-white/5 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] relative z-10 transition-all duration-500">
+      <GlassCard className="w-full max-w-sm p-8 relative z-10 !bg-slate-900/70 border border-slate-700/30">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-zinc-800 to-black rounded-2xl mx-auto flex items-center justify-center border border-white/5 shadow-2xl mb-6 group relative overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-             {isRegistering ? 
-               <User className="text-zinc-400 group-hover:text-indigo-400 transition-colors duration-500" size={32} /> : 
-               <Lock className="text-zinc-400 group-hover:text-indigo-400 transition-colors duration-500" size={32} />
-             }
+          <div className="w-16 h-16 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl mx-auto flex items-center justify-center border border-white/5 shadow-lg mb-6">
+             {isRegistering ? <User className="text-indigo-400" size={28} /> : <Lock className="text-indigo-400" size={28} />}
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight mb-2 font-display">
-            {isRegistering ? "สร้างบัญชี" : "ยินดีต้อนรับ"}
+          <h1 className="text-2xl font-bold text-slate-100 tracking-tight mb-2">
+            {isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ"}
           </h1>
-          <p className="text-zinc-500 text-sm">ระบบรับหนังสือเสนอ ผอ.</p>
+          <p className="text-slate-400 text-xs tracking-wide">ระบบรับหนังสือเสนอ ผอ.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">Email</label>
-            <GlassInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="user@example.com" className="bg-black/30" />
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Email</label>
+            <GlassInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="user@prison.go.th" className="!bg-black/20" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">Password</label>
-            <GlassInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="bg-black/30" />
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Password</label>
+            <GlassInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="!bg-black/20" />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs text-center flex items-center justify-center gap-2 animate-in fade-in slide-in-from-top-2">
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-300 text-xs text-center flex items-center justify-center gap-2">
               <AlertTriangle size={14} /> {error}
             </div>
           )}
@@ -236,25 +229,18 @@ const LoginScreen = ({ onLogin, onRegister }) => {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full py-3.5 mt-2 text-white font-bold rounded-xl shadow-lg transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-900/20 border border-white/10"
+            className="w-full py-3 mt-2 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/20 transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 border border-white/10"
           >
-            {loading ? "กำลังดำเนินการ..." : (isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ")}
+            {loading ? "..." : (isRegistering ? "ยืนยัน" : "เข้าใช้งาน")}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-white/5 text-center">
-            <button 
-                onClick={() => { setIsRegistering(!isRegistering); setError(null); }}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-                {isRegistering ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? ลงทะเบียนใหม่"}
+        <div className="mt-8 pt-6 border-t border-white/[0.05] text-center">
+            <button onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                {isRegistering ? "กลับไปหน้าเข้าสู่ระบบ" : "ลงทะเบียนผู้ใช้ใหม่"}
             </button>
         </div>
-      </div>
-      
-      <div className="absolute bottom-6 text-[10px] text-zinc-800 font-mono">
-         © 2025 Central Correctional Institution for Young Offenders
-      </div>
+      </GlassCard>
     </div>
   );
 };
@@ -271,34 +257,32 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(docItem.id, { 
-        subject: editSubject, note: editNote, returnReason: returnReason, department: editDepartment 
-    });
+    await onSave(docItem.id, { subject: editSubject, note: editNote, returnReason: returnReason, department: editDepartment });
     setSaving(false);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-      <GlassCard className="w-full max-w-3xl flex flex-col max-h-[85vh] overflow-hidden bg-[#121214] ring-1 ring-white/10">
-        <div className="p-6 border-b border-white/5 flex justify-between items-start bg-gradient-to-r from-zinc-900/80 to-transparent">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+      <GlassCard className="w-full max-w-3xl flex flex-col max-h-[85vh] overflow-hidden bg-[#1e293b]/90 !border-slate-700/50">
+        <div className="p-6 border-b border-white/[0.05] flex justify-between items-start bg-slate-900/50">
           <div className="flex gap-5">
-             <div className="bg-black/40 p-4 rounded-2xl border border-white/5 shadow-inner min-w-[80px] flex items-center justify-center">
-                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-600 tracking-tighter">{docItem.runningNumber || '-'}</span>
+             <div className="bg-slate-900/80 p-4 rounded-2xl border border-white/5 shadow-inner min-w-[80px] flex items-center justify-center">
+                <span className="text-3xl font-black text-slate-200 tracking-tighter">{docItem.runningNumber || '-'}</span>
              </div>
              <div className="pt-1">
-                <h3 className="text-lg font-bold text-zinc-100 leading-tight mb-1">แก้ไขรายการ</h3>
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <h3 className="text-lg font-bold text-slate-100 leading-tight mb-1">แก้ไขข้อมูล</h3>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
                    <Clock size={12}/> {docItem.receivedAt?.toLocaleDateString('th-TH')} {docItem.receivedAt?.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}
                 </div>
              </div>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-white/5 transition-all"><X size={20}/></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-200 p-2 rounded-full hover:bg-white/5 transition-all"><X size={20}/></button>
         </div>
 
-        <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#0a0a0a]/50">
-           <div className={`flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/[0.02]`}>
-              <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">สถานะ</span>
+        <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#0f172a]/30">
+           <div className={`flex items-center justify-between p-4 rounded-xl border border-white/[0.05] bg-white/[0.01]`}>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">สถานะ</span>
               <div className={`flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-lg border border-white/5 ${statusConfig.color}`}>
                  {statusConfig.icon && React.createElement(statusConfig.icon, { size: 16 })}
                  {statusConfig.label}
@@ -306,32 +290,31 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
            </div>
 
            <div>
-              <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><FileText size={14}/> เรื่อง</label>
+              <label className="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><FileText size={14}/> เรื่อง</label>
               <GlassTextArea value={editSubject} onChange={(e) => setEditSubject(e.target.value)} className="min-h-[80px]" />
            </div>
 
            <div>
-              <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><Building2 size={14}/> หน่วยงาน</label>
+              <label className="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><Building2 size={14}/> หน่วยงาน</label>
               <CustomSelect value={editDepartment} options={DEPARTMENTS} onChange={setEditDepartment} icon={Building2} />
            </div>
 
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                <div>
-                  <label className="block text-xs font-bold text-zinc-500 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><StickyNote size={14}/> หมายเหตุ</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><StickyNote size={14}/> หมายเหตุ</label>
                   <GlassTextArea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="-" className="min-h-[100px]" />
                </div>
                <div>
                   <label className="block text-xs font-bold text-red-400 mb-2 ml-1 uppercase tracking-wider flex items-center gap-2"><AlertTriangle size={14}/> เหตุผลการคืน</label>
-                  <GlassTextArea value={returnReason} onChange={(e) => setReturnReason(e.target.value)} placeholder="-" className="min-h-[100px] border-red-900/20 bg-red-950/5 focus:border-red-900/50" />
+                  <GlassTextArea value={returnReason} onChange={(e) => setReturnReason(e.target.value)} placeholder="-" className="min-h-[100px] border-red-500/20 bg-red-500/5 focus:border-red-500/40" />
                </div>
            </div>
         </div>
 
-        <div className="p-5 border-t border-white/5 bg-zinc-900/50 backdrop-blur-xl flex justify-end gap-3">
-           <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-all">ยกเลิก</button>
-           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 transition-all shadow-lg shadow-white/5 active:scale-95 flex items-center gap-2">
-              {saving ? <div className="w-3 h-3 border-2 border-zinc-400 border-t-black rounded-full animate-spin"/> : <Check size={14}/>}
-              บันทึก
+        <div className="p-5 border-t border-white/[0.05] bg-slate-900/50 backdrop-blur-xl flex justify-end gap-3">
+           <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all">ยกเลิก</button>
+           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center gap-2">
+              {saving ? "บันทึก..." : "บันทึก"}
            </button>
         </div>
       </GlassCard>
@@ -378,9 +361,8 @@ const Dashboard = ({ user, onLogout }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg(''); 
-    if (!subject.trim()) { setErrorMsg("⚠️ กรุณากรอกชื่อเรื่อง"); return; }
-    if (!receiverName.trim()) { setErrorMsg("⚠️ กรุณากรอกชื่อผู้รับ"); return; }
-    if (!db) { setErrorMsg("⚠️ Database Error"); return; }
+    if (!subject.trim()) { setErrorMsg("⚠️ ระบุเรื่อง"); return; }
+    if (!receiverName.trim()) { setErrorMsg("⚠️ ระบุผู้รับ"); return; }
     
     setSubmitting(true);
     try {
@@ -408,64 +390,15 @@ const Dashboard = ({ user, onLogout }) => {
   const handleUpdateDoc = async (docId, newData) => { try { await updateDoc(doc(db, 'director_submissions', docId), newData); } catch (e) { alert(e.message); }};
   const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
   const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[9px] px-2.5 py-1 rounded-lg border font-semibold ${l.color} shadow-sm`}>{l.label}</span> };
+  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[9px] px-2.5 py-1 rounded-md border font-medium ${l.color}`}>{l.label}</span> };
   
-  // ✅ แก้ไขส่วน Export เป็น Excel ให้เป็นไฟล์ .xls ที่เปิดได้จริงและภาษาไทยไม่เพี้ยน
   const handleExportExcel = () => { 
-    // สร้าง HTML Table สำหรับเปิดใน Excel
     let table = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          table { border-collapse: collapse; width: 100%; }
-          td, th { border: 1px solid #000000; padding: 5px; text-align: left; vertical-align: top; }
-          th { background-color: #f2f2f2; font-weight: bold; }
-        </style>
-      </head>
-      <body>
-        <table>
-          <thead>
-            <tr>
-              <th>เลขรับ</th>
-              <th>วันที่</th>
-              <th>เวลา</th>
-              <th>ความเร่งด่วน</th>
-              <th>เรื่อง</th>
-              <th>หน่วยงานเจ้าของเรื่อง</th>
-              <th>ผู้รับ</th>
-              <th>หมายเหตุ</th>
-              <th>เหตุผลการคืน</th>
-              <th>สถานะ</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    filteredDocs.forEach(doc => {
-      table += `
-        <tr>
-          <td>${doc.runningNumber || '-'}</td>
-          <td>${formatDate(doc.receivedAt)}</td>
-          <td>${formatTime(doc.receivedAt)}</td>
-          <td>${URGENCY_LEVELS.find(l => l.id === doc.urgency)?.label || 'ปกติ'}</td>
-          <td>${doc.subject || ''}</td>
-          <td>${doc.department || ''}</td>
-          <td>${doc.receiverName || ''}</td>
-          <td>${doc.note || ''}</td>
-          <td>${doc.returnReason || ''}</td>
-          <td>${STATUS_LEVELS[doc.status]?.label || ''}</td>
-        </tr>
-      `;
-    });
-
-    table += `
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
-
+      <head><meta charset="UTF-8"></head><body><table>
+      <thead><tr><th>เลขรับ</th><th>วันที่</th><th>เวลา</th><th>ความเร่งด่วน</th><th>เรื่อง</th><th>หน่วยงาน</th><th>ผู้รับ</th><th>หมายเหตุ</th><th>คืนเรื่อง</th><th>สถานะ</th></tr></thead>
+      <tbody>${filteredDocs.map(doc => `<tr><td>${doc.runningNumber||'-'}</td><td>${formatDate(doc.receivedAt)}</td><td>${formatTime(doc.receivedAt)}</td><td>${URGENCY_LEVELS.find(l=>l.id===doc.urgency)?.label}</td><td>${doc.subject}</td><td>${doc.department}</td><td>${doc.receiverName}</td><td>${doc.note||''}</td><td>${doc.returnReason||''}</td><td>${STATUS_LEVELS[doc.status]?.label}</td></tr>`).join('')}</tbody>
+      </table></body></html>`;
     const blob = new Blob([table], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -474,7 +407,6 @@ const Dashboard = ({ user, onLogout }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const filteredDocs = documents.filter(d => {
@@ -489,35 +421,34 @@ const Dashboard = ({ user, onLogout }) => {
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&family=Dancing+Script:wght@700&display=swap');
-        body { font-family: 'Sarabun', 'Inter', sans-serif; background-color: #050505; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; } 
-        ::-webkit-scrollbar-track { background: #09090b; } 
-        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 3px; } 
-        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; }
+        body { font-family: 'Sarabun', 'Inter', sans-serif; background-color: #0f172a; color: #e2e8f0; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; } 
+        ::-webkit-scrollbar-track { background: #0f172a; } 
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; } 
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
         @media print { .no-print { display: none !important; } }
       `}</style>
       
       <MourningSash />
       {detailDoc && <DetailModal docItem={detailDoc} onClose={() => setDetailDoc(null)} onSave={handleUpdateDoc} />}
 
-      <div className="h-screen flex flex-col bg-[#050505] text-zinc-300 overflow-hidden relative selection:bg-indigo-500/30 selection:text-white">
+      <div className="h-screen flex flex-col bg-[#0f172a] overflow-hidden relative selection:bg-indigo-500/40 selection:text-white">
         {/* Header */}
-        <header className="bg-zinc-900/40 backdrop-blur-xl border-b border-white/5 h-16 flex items-center justify-between px-6 z-30 shrink-0">
+        <header className="bg-slate-900/80 backdrop-blur-xl border-b border-white/[0.05] h-16 flex items-center justify-between px-6 z-30 shrink-0 shadow-lg">
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-zinc-800 to-black p-2 rounded-xl border border-white/10 shadow-lg"><BookOpen size={20} className="text-white" /></div>
+            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-2 rounded-xl shadow-lg shadow-indigo-500/20"><BookOpen size={18} className="text-white" /></div>
             <div>
-              <h1 className="text-base font-bold text-zinc-100 leading-none">ระบบรับหนังสือเสนอ ผอ.</h1>
-              <p className="text-[10px] text-zinc-500 font-medium tracking-wide mt-0.5">ทัณฑสถานวัยหนุ่มกลาง</p>
+              <h1 className="text-sm font-bold text-slate-100 leading-none">ระบบรับหนังสือเสนอ ผอ.</h1>
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5">ทัณฑสถานวัยหนุ่มกลาง</p>
             </div>
           </div>
           <div className="flex gap-4 items-center">
-              <div className="hidden sm:flex bg-[#09090b]/50 rounded-lg p-1 border border-white/5">
-                 <button onClick={handleExportExcel} className="p-2 hover:bg-white/10 rounded-md transition-colors text-zinc-400 hover:text-white" title="Export Excel"><Download size={16}/></button>
-                 <div className="w-px bg-white/10 mx-1 my-1"></div>
-                 <button onClick={()=>window.print()} className="p-2 hover:bg-white/10 rounded-md transition-colors text-zinc-400 hover:text-white" title="Print"><Printer size={16}/></button>
+              <div className="hidden sm:flex bg-slate-800/50 rounded-lg p-1 border border-white/5">
+                 <button onClick={handleExportExcel} className="p-2 hover:bg-white/5 rounded-md transition-colors text-slate-400 hover:text-slate-200" title="Export Excel"><Download size={16}/></button>
+                 <div className="w-px bg-white/5 mx-1 my-1"></div>
+                 <button onClick={()=>window.print()} className="p-2 hover:bg-white/5 rounded-md transition-colors text-slate-400 hover:text-slate-200" title="Print"><Printer size={16}/></button>
               </div>
-              <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/20 transition-all">
+              <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-[10px] font-bold hover:bg-red-500/20 transition-all">
                 <LogOut size={14} /> 
               </button>
           </div>
@@ -525,98 +456,91 @@ const Dashboard = ({ user, onLogout }) => {
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: Form */}
-          <div className="w-[360px] min-w-[360px] bg-[#09090b] border-r border-white/5 flex flex-col z-20 shadow-2xl relative">
-             <div className="p-6 border-b border-white/5 shrink-0 flex justify-between items-center bg-zinc-900/20 backdrop-blur-sm">
-               <h2 className="font-bold text-zinc-200 flex items-center gap-3 text-sm"><span className="bg-white/5 p-1.5 rounded-lg border border-white/5"><PenTool size={14}/></span> ลงรับหนังสือใหม่</h2>
-               <button onClick={() => { setSubject("ขออนุมัติจัดซื้อวัสดุ"); setDepartment(DEPARTMENTS[0]); setReceiverName("นางสาวธุรการ"); }} className="text-[10px] bg-white/5 border border-white/5 text-zinc-500 px-3 py-1 rounded-full hover:text-white transition-all">Demo</button>
+          <div className="w-[340px] min-w-[340px] bg-[#111827] border-r border-white/[0.05] flex flex-col z-20 relative shadow-2xl">
+             <div className="p-5 border-b border-white/[0.05] shrink-0 flex justify-between items-center bg-slate-900/50">
+               <h2 className="font-bold text-slate-300 flex items-center gap-2 text-xs uppercase tracking-wider"><PenTool size={12} className="text-indigo-400"/> ลงรับใหม่</h2>
+               <button onClick={() => { setSubject("ขออนุมัติจัดซื้อวัสดุ"); setDepartment(DEPARTMENTS[0]); setReceiverName("นางสาวธุรการ"); }} className="text-[10px] bg-slate-800 border border-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-700 hover:text-slate-200 transition-all">Demo</button>
              </div>
 
-             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+             <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
                 {/* Next Number Card */}
-                <div className="bg-gradient-to-b from-zinc-800/50 to-zinc-900/50 p-6 rounded-2xl border border-white/5 flex flex-col items-center relative overflow-hidden group shadow-lg ring-1 ring-white/5">
-                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 mix-blend-overlay"></div>
-                   <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-2 z-10">เลขรับถัดไป</span>
-                   <span className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-600 tracking-tighter drop-shadow-sm z-10">{getNextRunningNumber()}</span>
+                <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-2xl border border-white/5 flex flex-col items-center relative overflow-hidden group shadow-lg">
+                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
+                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-1 z-10">เลขรับถัดไป</span>
+                   <span className="text-5xl font-black text-slate-100 tracking-tighter z-10 drop-shadow-md">{getNextRunningNumber()}</span>
                 </div>
                 
                 {/* Inputs */}
                 <div className="space-y-4">
                    <div className="grid grid-cols-2 gap-2">
-                      {URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-[11px] py-2.5 rounded-xl font-medium border transition-all ${urgency===l.id?`${l.color} shadow-sm ring-1 ring-white/10`:'bg-black/20 text-zinc-500 border-transparent hover:bg-white/5 hover:text-zinc-300'}`}>{l.label}</button>)}
+                      {URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-[10px] py-2.5 rounded-xl font-medium border transition-all ${urgency===l.id?`${l.color} shadow-sm border-white/5 ring-1 ring-white/5`:'bg-slate-900/50 text-slate-500 border-transparent hover:bg-slate-800 hover:text-slate-300'}`}>{l.label}</button>)}
                    </div>
-                   <div><label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1 mb-1.5 block">เรื่อง</label><GlassInput value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
+                   <div><label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-1 block">เรื่อง</label><GlassInput value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
                    <CustomSelect label="หน่วยงาน" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
                    <div>
-                      <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1 mb-1.5 block">ผู้รับ</label>
-                      <div className="relative group"><GlassInput value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." className="pl-10" /><User size={14} className="absolute left-3.5 top-3.5 text-zinc-600 group-focus-within:text-zinc-400 transition-colors"/></div>
-                      {savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[10px] bg-white/5 border border-white/5 px-2 py-1 rounded cursor-pointer text-zinc-500 hover:text-zinc-200 transition-all">{n}</span>)}</div>}
+                      <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-1 block">ผู้รับ</label>
+                      <div className="relative group"><GlassInput value={receiverName} onChange={e=>setReceiverName(e.target.value)} placeholder="ระบุผู้รับ..." className="pl-9" /><User size={14} className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-slate-300 transition-colors"/></div>
+                      {savedReceivers.length>0 && <div className="flex flex-wrap gap-1.5 mt-2">{savedReceivers.map((n,i)=><span key={i} onClick={()=>setReceiverName(n)} className="text-[9px] bg-slate-800/50 border border-slate-700/50 px-1.5 py-0.5 rounded cursor-pointer text-slate-400 hover:text-slate-200 transition-all">{n}</span>)}</div>}
                    </div>
-                   <div><label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1 mb-1.5 block">หมายเหตุ</label><GlassTextArea value={note} onChange={e=>setNote(e.target.value)} placeholder="-" className="h-20" /></div>
+                   <div><label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider ml-1 mb-1 block">หมายเหตุ</label><GlassTextArea value={note} onChange={e=>setNote(e.target.value)} placeholder="-" className="h-20" /></div>
                 </div>
              </div>
 
-             <div className="p-6 border-t border-white/5 bg-[#09090b] shrink-0 z-10">
-                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white text-sm font-bold shadow-lg flex justify-center items-center gap-2 transition-all ${submitting?'bg-zinc-800 text-zinc-500 cursor-wait':'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-900/20 active:scale-[0.98]'}`}>
-                  {submitting ? <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> บันทึก...</span> : <><Save size={16}/> ยืนยันลงรับ</>}
+             <div className="p-5 border-t border-white/[0.05] bg-[#111827] shrink-0 z-10">
+                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-lg shadow-indigo-900/20 flex justify-center items-center gap-2 transition-all ${submitting?'bg-slate-800 text-slate-500 cursor-wait':'bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98]'}`}>
+                  {submitting ? "กำลังบันทึก..." : <><Save size={14}/> ยืนยัน</>}
                 </button>
-                {showSuccess && <div className="mt-3 text-xs text-center text-emerald-400 font-bold bg-emerald-500/10 py-2.5 rounded-xl border border-emerald-500/20 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2"><CheckCircle2 size={14}/> บันทึกสำเร็จ!</div>}
-                {errorMsg && <div className="mt-3 text-xs text-center text-red-400 font-bold bg-red-500/10 py-2.5 rounded-xl border border-red-500/20 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2"><XCircle size={14}/> {errorMsg}</div>}
+                {showSuccess && <div className="mt-3 text-[10px] text-center text-emerald-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><CheckCircle2 size={12}/> บันทึกแล้ว</div>}
+                {errorMsg && <div className="mt-3 text-[10px] text-center text-red-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><XCircle size={12}/> {errorMsg}</div>}
              </div>
           </div>
 
           {/* Right Panel: List */}
-          <div className="flex-1 flex flex-col bg-[#050505] overflow-hidden relative">
-             <div className="px-6 py-4 border-b border-white/5 bg-zinc-900/30 backdrop-blur-xl flex gap-3 shrink-0 items-center overflow-x-auto pr-16">
-                <div className="relative flex-1 min-w-[200px] group"><Search size={16} className="absolute left-3.5 top-3 text-zinc-600 group-focus-within:text-zinc-400 transition-colors"/><input className="w-full pl-10 pr-4 py-2.5 text-sm bg-black/20 border border-white/5 rounded-xl focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-700 text-zinc-300" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
-                <div className="relative min-w-[150px]"><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full px-4 py-2.5 text-sm bg-black/20 border border-white/5 rounded-xl focus:border-indigo-500/50 outline-none text-zinc-400 cursor-pointer [color-scheme:dark]" /></div>
+          <div className="flex-1 flex flex-col bg-[#0f172a] overflow-hidden relative">
+             <div className="px-6 py-4 border-b border-white/[0.05] flex gap-3 shrink-0 items-center overflow-x-auto pr-16 bg-[#0f172a]">
+                <div className="relative flex-1 min-w-[200px] group"><Search size={14} className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-slate-300 transition-colors"/><input className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 focus:bg-slate-900 outline-none transition-all placeholder:text-slate-600 text-slate-200" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
+                <div className="relative min-w-[140px]"><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full px-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 outline-none text-slate-200 cursor-pointer [color-scheme:dark]" /></div>
                 <div className="w-40"><CustomSelect value={filterStatus} options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ"/></div>
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-24 custom-scrollbar">
-                {loading ? <div className="flex flex-col items-center justify-center py-32 text-zinc-600 gap-4"><div className="w-8 h-8 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin"></div><p className="text-xs font-medium">กำลังโหลดข้อมูล...</p></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-32 text-zinc-700 border-2 border-dashed border-zinc-800/50 rounded-3xl m-4 bg-white/[0.01]"><div className="bg-zinc-800/50 p-4 rounded-full mb-3"><FileText size={24} className="text-zinc-600"/></div><p className="text-sm">ไม่พบเอกสาร</p></div> : 
+                {loading ? <div className="flex flex-col items-center justify-center py-32 text-slate-600 gap-4"><div className="w-6 h-6 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-32 text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl m-4"><div className="bg-slate-800/50 p-4 rounded-full mb-3"><FileText size={20} className="text-slate-500"/></div><p className="text-xs">ไม่พบเอกสาร</p></div> : 
                   filteredDocs.map(doc => {
                     const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
                     const urgencyStyle = URGENCY_LEVELS.find(u=>u.id===doc.urgency);
                     return (
-                      <div key={doc.id} className="group relative bg-[#0e0e10] hover:bg-[#131316] rounded-2xl border border-white/5 p-4 transition-all duration-200 hover:shadow-lg hover:border-white/10 flex gap-5 animate-in fade-in slide-in-from-bottom-2">
-                        {/* Left Strip Indicator */}
-                        <div className={`absolute left-0 top-4 bottom-4 w-1 rounded-r-full ${urgencyStyle?.color.split(' ')[0].replace('/40','/80').replace('/20','/80').replace('/10','/80') || 'bg-zinc-600'}`}></div>
+                      <div key={doc.id} className="group relative bg-[#1e293b]/40 hover:bg-[#1e293b]/70 rounded-xl border border-white/[0.05] p-4 transition-all duration-200 hover:border-indigo-500/20 hover:shadow-lg flex gap-5">
+                        <div className={`absolute left-0 top-3 bottom-3 w-0.5 rounded-r-full ${urgencyStyle?.color.split(' ')[0].replace('/40','').replace('/10','') || 'bg-slate-600'}`}></div>
                         
-                        {/* Number Box */}
-                        <div className="flex flex-col items-center justify-center min-w-[60px] pl-2">
-                           <div className="w-14 h-14 bg-black/30 rounded-xl border border-white/5 flex items-center justify-center shadow-inner mb-1 group-hover:bg-black/50 transition-colors">
-                              <span className={`text-2xl font-black ${statusConfig.titleColor}`}>{doc.runningNumber || '-'}</span>
-                           </div>
-                           <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">เลขรับ</span>
+                        <div className="flex flex-col items-center justify-center min-w-[50px] pl-1">
+                           <span className={`text-xl font-bold ${statusConfig.titleColor} tracking-tight`}>{doc.runningNumber || '-'}</span>
+                           <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1">เลขรับ</span>
                         </div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0 py-1">
-                           <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 min-w-0 py-0.5">
+                           <div className="flex items-center gap-2 mb-1.5">
                               {getUrgencyBadge(doc.urgency)}
-                              <span className="text-[10px] font-medium text-zinc-500 flex items-center gap-1"><Clock size={10} /> {formatDate(doc.receivedAt)} • {formatTime(doc.receivedAt)}</span>
+                              <span className="text-[10px] font-medium text-slate-500 flex items-center gap-1"><Clock size={10} /> {formatDate(doc.receivedAt)} • {formatTime(doc.receivedAt)}</span>
                            </div>
-                           <h3 onClick={() => setDetailDoc(doc)} className={`text-base font-bold mb-2 truncate cursor-pointer hover:underline underline-offset-2 decoration-white/20 transition-all ${statusConfig.titleColor}`}>{doc.subject}</h3>
-                           <div className="flex flex-wrap gap-y-1 gap-x-3 text-xs text-zinc-500">
-                              <span className="flex items-center gap-1.5"><Building2 size={12} className="text-zinc-600"/> {doc.department}</span>
-                              <span className="text-zinc-700">•</span>
-                              <span className="flex items-center gap-1.5"><User size={12} className="text-zinc-600"/> รับโดย {doc.receiverName}</span>
+                           <h3 onClick={() => setDetailDoc(doc)} className={`text-sm font-bold mb-1.5 truncate cursor-pointer hover:text-white transition-colors ${statusConfig.titleColor}`}>{doc.subject}</h3>
+                           <div className="flex flex-wrap gap-y-1 gap-x-3 text-[10px] text-slate-400">
+                              <span className="flex items-center gap-1"><Building2 size={10} className="text-slate-500"/> {doc.department}</span>
+                              <span className="flex items-center gap-1"><User size={10} className="text-slate-500"/> รับโดย {doc.receiverName}</span>
                            </div>
                            {(doc.note || doc.returnReason) && (
-                             <div className="mt-3 flex gap-2">
-                               {doc.note && <span className="text-[10px] px-2 py-1 bg-zinc-800/50 rounded text-zinc-400 border border-white/5 truncate max-w-[200px]">{doc.note}</span>}
-                               {doc.returnReason && <span className="text-[10px] px-2 py-1 bg-red-950/20 rounded text-red-400 border border-red-900/20 truncate max-w-[200px]">คืน: {doc.returnReason}</span>}
+                             <div className="mt-2 flex gap-2">
+                               {doc.note && <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 rounded text-slate-400 border border-slate-700/50 truncate max-w-[200px]">{doc.note}</span>}
+                               {doc.returnReason && <span className="text-[9px] px-1.5 py-0.5 bg-red-900/20 rounded text-red-300 border border-red-500/20 truncate max-w-[200px]">คืน: {doc.returnReason}</span>}
                              </div>
                            )}
                         </div>
 
-                        {/* Right Action & Status */}
-                        <div className={`flex flex-col justify-between items-end pl-4 border-l ${statusConfig.borderColor} border-opacity-20 border-dashed`}>
-                           <div onClick={()=>handleStatusToggle(doc.id,doc.status)} className={`cursor-pointer transform transition-transform hover:scale-105 active:scale-95 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 shadow-sm border border-white/5 ${statusConfig.color}`}>
-                              {statusConfig.icon && React.createElement(statusConfig.icon, { size: 14 })} {statusConfig.label}
+                        <div className={`flex flex-col justify-between items-end pl-4 border-l border-white/[0.05]`}>
+                           <div onClick={()=>handleStatusToggle(doc.id,doc.status)} className={`cursor-pointer transform transition-transform hover:scale-105 active:scale-95 px-2.5 py-1 rounded-md text-[9px] font-bold flex items-center gap-1.5 ${statusConfig.color}`}>
+                              {statusConfig.icon && React.createElement(statusConfig.icon, { size: 12 })} {statusConfig.label}
                            </div>
                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => setDetailDoc(doc)} className="p-2 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 rounded-lg transition-colors"><Edit3 size={16}/></button>
+                              <button onClick={() => setDetailDoc(doc)} className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-white/5 rounded-md transition-colors"><Edit3 size={14}/></button>
                               <DeleteButton onDelete={()=>handleDelete(doc.id)}/>
                            </div>
                         </div>
@@ -629,13 +553,13 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
 
         {/* Footer Credit */}
-        <div className="fixed bottom-4 right-6 z-[100] group select-none cursor-default no-print">
-           <div className="bg-zinc-900/80 backdrop-blur-md border border-white/5 pl-3 pr-4 py-1.5 rounded-full shadow-2xl flex items-center gap-2 transition-all hover:bg-black hover:border-white/10">
-               <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        <div className="fixed bottom-3 right-6 z-[100] group select-none cursor-default no-print opacity-50 hover:opacity-100 transition-opacity">
+           <div className="flex items-center gap-2">
+               <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
                </span>
-               <span className="font-dancing text-zinc-500 text-xs tracking-widest group-hover:text-zinc-300 transition-colors">Design By Dream APL</span>
+               <span className="font-dancing text-slate-500 text-[10px] tracking-widest group-hover:text-indigo-400 transition-colors">Design By Dream APL</span>
            </div>
         </div>
       </div>
@@ -655,33 +579,26 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // ✅ Login Function: ใช้ setPersistence เพื่อบังคับ Session Only
   const handleLogin = async (email, password) => {
     try {
       await setPersistence(auth, browserSessionPersistence);
       return signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      throw error;
-    }
+    } catch (error) { throw error; }
   };
 
   const handleRegister = async (email, password) => {
     try {
       await setPersistence(auth, browserSessionPersistence);
       return createUserWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      throw error;
-    }
+    } catch (error) { throw error; }
   };
 
   const handleLogout = () => signOut(auth);
 
   if (authChecking) {
     return (
-      <div className="h-screen bg-[#050505] flex items-center justify-center">
-         <div className="flex flex-col items-center gap-4">
-             <div className="w-10 h-10 border-2 border-zinc-800 border-t-indigo-500 rounded-full animate-spin"></div>
-         </div>
+      <div className="h-screen bg-[#0f172a] flex items-center justify-center">
+         <div className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
       </div>
     );
   }
