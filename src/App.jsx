@@ -410,16 +410,71 @@ const Dashboard = ({ user, onLogout }) => {
   const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[9px] px-2.5 py-1 rounded-lg border font-semibold ${l.color} shadow-sm`}>{l.label}</span> };
   
+  // ✅ แก้ไขส่วน Export เป็น Excel ให้เป็นไฟล์ .xls ที่เปิดได้จริงและภาษาไทยไม่เพี้ยน
   const handleExportExcel = () => { 
-    const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงาน,ผู้รับ,หมายเหตุ,เหตุผลการคืน,สถานะ\n";
-    const csvRows = filteredDocs.map(doc => {
-      return `${doc.runningNumber},${formatDate(doc.receivedAt)},${formatTime(doc.receivedAt)},${URGENCY_LEVELS.find(l=>l.id===doc.urgency)?.label},"${doc.subject.replace(/"/g,'""')}","${doc.department}","${doc.receiverName}","${(doc.note||'').replace(/"/g,'""')}","${(doc.returnReason||'').replace(/"/g,'""')}",${STATUS_LEVELS[doc.status]?.label}`;
+    // สร้าง HTML Table สำหรับเปิดใน Excel
+    let table = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          table { border-collapse: collapse; width: 100%; }
+          td, th { border: 1px solid #000000; padding: 5px; text-align: left; vertical-align: top; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <thead>
+            <tr>
+              <th>เลขรับ</th>
+              <th>วันที่</th>
+              <th>เวลา</th>
+              <th>ความเร่งด่วน</th>
+              <th>เรื่อง</th>
+              <th>หน่วยงานเจ้าของเรื่อง</th>
+              <th>ผู้รับ</th>
+              <th>หมายเหตุ</th>
+              <th>เหตุผลการคืน</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    filteredDocs.forEach(doc => {
+      table += `
+        <tr>
+          <td>${doc.runningNumber || '-'}</td>
+          <td>${formatDate(doc.receivedAt)}</td>
+          <td>${formatTime(doc.receivedAt)}</td>
+          <td>${URGENCY_LEVELS.find(l => l.id === doc.urgency)?.label || 'ปกติ'}</td>
+          <td>${doc.subject || ''}</td>
+          <td>${doc.department || ''}</td>
+          <td>${doc.receiverName || ''}</td>
+          <td>${doc.note || ''}</td>
+          <td>${doc.returnReason || ''}</td>
+          <td>${STATUS_LEVELS[doc.status]?.label || ''}</td>
+        </tr>
+      `;
     });
-    const csvContent = "\uFEFF" + csvHeader + csvRows.join("\n");
+
+    table += `
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([table], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(new Blob([csvContent], { type: 'text/csv;charset=utf-8;' }));
-    link.download = `Log_${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.csv`;
+    link.href = url;
+    link.download = `Log_${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.xls`;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const filteredDocs = documents.filter(d => {
