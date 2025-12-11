@@ -4,14 +4,23 @@ import {
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'; 
+// ✅ นำเข้า setPersistence และ browserSessionPersistence โดยตรง
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut,
+  setPersistence,
+  browserSessionPersistence
+} from 'firebase/auth'; 
 import { 
   BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
   Trash2, CheckSquare, RefreshCcw, XCircle,
   Calendar, Filter, Download, X, StickyNote,
   ChevronDown, Check, Edit3, AlertTriangle, FileText,
-  LogOut, Lock 
+  LogOut, Lock, LogIn
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
@@ -39,54 +48,51 @@ const DEPARTMENTS = [
   "ส่วนสวัสดิการฯ", "ส่วนสถานพยาบาล", "ส่วนพัฒนาผู้ต้องขัง 1", "ส่วนพัฒนาผู้ต้องขัง 2", "หน่วยงานภายนอก/อื่นๆ"
 ];
 
+// Theme Colors (Modern Dark Neon)
 const URGENCY_LEVELS = [
-  { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800/50 text-zinc-400 border-zinc-700/50 hover:bg-zinc-700/50 hover:text-zinc-200' },
-  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-950/20 text-orange-400 border-orange-900/30 hover:bg-orange-900/30' },
-  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-950/20 text-red-400 border-red-900/30 hover:bg-red-900/30' },
-  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-rose-950/40 text-rose-200 border-rose-800/50 hover:bg-rose-900/50 shadow-[0_0_15px_rgba(225,29,72,0.15)]' }
+  { id: 'normal', label: 'ปกติ', color: 'bg-zinc-800/40 text-zinc-400 border-zinc-700/50 hover:bg-zinc-700/50 hover:text-zinc-200' },
+  { id: 'urgent', label: 'ด่วน', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)]' },
+  { id: 'very_urgent', label: 'ด่วนมาก', color: 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]' },
+  { id: 'most_urgent', label: 'ด่วนที่สุด', color: 'bg-rose-600/20 text-rose-300 border-rose-500/40 hover:bg-rose-600/30 hover:shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-pulse-slow' }
 ];
 
 const STATUS_LEVELS = {
-  'pending': { label: 'รอเสนอ', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: Clock, titleColor: 'text-zinc-200', borderColor: 'border-l-amber-500/50' },
-  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: CheckSquare, titleColor: 'text-emerald-400', borderColor: 'border-l-emerald-500/50' },
-  'returned': { label: 'คืนเรื่อง', color: 'bg-red-500/10 text-red-500 border-red-500/20', icon: RefreshCcw, titleColor: 'text-red-400', borderColor: 'border-l-red-500/50' },
+  'pending': { label: 'รอเสนอ', color: 'bg-amber-400/10 text-amber-400 border-amber-400/20', icon: Clock, titleColor: 'text-zinc-100', borderColor: 'border-amber-500/50' },
+  'signed': { label: 'เซ็นแล้ว', color: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20', icon: CheckSquare, titleColor: 'text-emerald-400', borderColor: 'border-emerald-500/50' },
+  'returned': { label: 'คืนเรื่อง', color: 'bg-red-400/10 text-red-400 border-red-400/20', icon: RefreshCcw, titleColor: 'text-red-400', borderColor: 'border-red-500/50' },
 };
 
 // --- Custom Components ---
 
-const MourningSash = () => (
-  <div className="fixed top-0 right-0 z-[9998] pointer-events-none w-24 h-24 overflow-hidden mix-blend-overlay opacity-80">
-    <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-2xl flex items-center justify-center border-b border-white/5">
-       <div className="w-3 h-3 bg-zinc-800/50 rounded-full shadow-inner ring-1 ring-white/10" />
-    </div>
+// 🎨 Glassy Components
+const GlassCard = ({ children, className = "" }) => (
+  <div className={`bg-[#18181b]/60 backdrop-blur-xl border border-white/5 shadow-xl rounded-2xl ${className}`}>
+    {children}
   </div>
 );
 
-// 🎨 Glassy Input Components
 const GlassInput = (props) => (
   <input 
     {...props}
-    className={`w-full px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-sm text-zinc-200 focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 focus:bg-black/40 outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 ${props.className || ''}`}
+    className={`w-full px-4 py-3 bg-[#09090b]/50 border border-white/5 rounded-xl text-sm text-zinc-100 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 focus:bg-[#09090b] outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 ${props.className || ''}`}
   />
 );
 
 const GlassTextArea = (props) => (
   <textarea 
     {...props}
-    className={`w-full px-4 py-3 bg-black/20 border border-white/5 rounded-xl text-sm text-zinc-200 focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 focus:bg-black/40 outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 resize-none ${props.className || ''}`}
+    className={`w-full px-4 py-3 bg-[#09090b]/50 border border-white/5 rounded-xl text-sm text-zinc-100 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 focus:bg-[#09090b] outline-none transition-all placeholder:text-zinc-600 hover:border-white/10 resize-none ${props.className || ''}`}
   />
 );
 
-// 🔴 CustomSelect: Simplified & Safe (No Portal)
+// Custom Select with modern styling
 const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -100,22 +106,22 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
 
   return (
     <div className="space-y-1.5 relative" ref={wrapperRef}>
-      {label && <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">{label}</label>}
+      {label && <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">{label}</label>}
       <div 
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-3 bg-black/20 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-zinc-500/50 bg-black/40' : 'border-white/5 hover:border-white/10 hover:bg-black/30'}`}
+        className={`w-full px-4 py-3 bg-[#09090b]/50 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group ${isOpen ? 'border-indigo-500/50 ring-2 ring-indigo-500/20 bg-[#09090b]' : 'border-white/5 hover:border-white/10 hover:bg-[#09090b]/80'}`}
       >
           <div className="flex items-center gap-3 overflow-hidden">
-             {Icon && <Icon size={16} className={`transition-colors ${isOpen ? 'text-zinc-300' : 'text-zinc-600 group-hover:text-zinc-400'}`} />}
+             {Icon && <Icon size={16} className={`transition-colors ${isOpen ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-300'}`} />}
              <span className={`truncate font-medium ${value === 'all' || !value ? 'text-zinc-500' : 'text-zinc-200'}`}>
                 {getDisplayLabel()}
              </span>
           </div>
-          <ChevronDown size={16} className={`text-zinc-600 transition-transform duration-300 ${isOpen ? 'rotate-180 text-zinc-300' : ''}`} />
+          <ChevronDown size={16} className={`text-zinc-600 transition-transform duration-300 ${isOpen ? 'rotate-180 text-indigo-400' : ''}`} />
       </div>
 
       {isOpen && (
-        <div className="absolute z-[50] w-full mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar backdrop-blur-3xl ring-1 ring-white/5">
+        <div className="absolute z-[100] w-full mt-2 bg-[#121214] border border-white/10 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] max-h-60 overflow-auto p-1.5 animate-in fade-in zoom-in-95 duration-200 custom-scrollbar backdrop-blur-3xl ring-1 ring-white/5">
           {options.map((opt, idx) => {
             const val = typeof opt === 'string' ? opt : opt.value;
             const lab = typeof opt === 'string' ? opt : opt.label;
@@ -123,10 +129,10 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
               <div 
                 key={idx} 
                 onClick={(e) => { e.stopPropagation(); onChange(val); setIsOpen(false); }} 
-                className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-all ${val === value ? 'bg-zinc-800 text-white font-medium shadow-sm' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
+                className={`px-3 py-2.5 text-xs rounded-lg cursor-pointer mb-0.5 flex justify-between items-center transition-all ${val === value ? 'bg-indigo-600/20 text-indigo-300 font-medium' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}
               >
                 <span>{lab}</span>
-                {val === value && <Check size={14} className="text-emerald-400" />}
+                {val === value && <Check size={14} className="text-indigo-400" />}
               </div>
             );
           })}
@@ -136,33 +142,16 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
   );
 };
 
-// 🗑️ Delete Button
 const DeleteButton = ({ onDelete }) => {
   const [confirming, setConfirming] = useState(false);
-  
-  useEffect(() => { 
-    if(confirming){
-      const t = setTimeout(() => setConfirming(false), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [confirming]);
-
-  const handleClick = (e) => { 
-    e.stopPropagation(); 
-    if (confirming) { 
-      onDelete(); 
-      setConfirming(false); 
-    } else { 
-      setConfirming(true); 
-    } 
-  };
+  useEffect(() => { if(confirming){ const t = setTimeout(() => setConfirming(false), 3000); return () => clearTimeout(t);} }, [confirming]);
+  const handleClick = (e) => { e.stopPropagation(); if (confirming) { onDelete(); setConfirming(false); } else { setConfirming(true); } };
 
   if (confirming) return (
-    <button onClick={handleClick} className="bg-red-500/20 text-red-400 border border-red-500/50 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:bg-red-500/30 animate-in fade-in zoom-in">
-      ยืนยัน?
+    <button onClick={handleClick} className="bg-red-500/20 text-red-400 border border-red-500/50 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:bg-red-500/30 animate-in fade-in zoom-in shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+      ยืนยันลบ?
     </button>
   );
-
   return (
     <button onClick={handleClick} className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
       <Trash2 size={16}/>
@@ -170,7 +159,7 @@ const DeleteButton = ({ onDelete }) => {
   );
 };
 
-// 🔐 Login Screen
+// 🔐 Login Screen: Ultra Modern
 const LoginScreen = ({ onLogin, onRegister }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState("");
@@ -183,11 +172,14 @@ const LoginScreen = ({ onLogin, onRegister }) => {
     setLoading(true);
     setError(null);
     try {
+      // ✅ ตั้งค่า Persistence ที่นี่ เพื่อความชัวร์ (จำแค่ปิด Browser)
+      await setPersistence(auth, browserSessionPersistence);
+      
       if (isRegistering) await onRegister(email, password);
       else await onLogin(email, password);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') setError("อีเมลนี้มีผู้ใช้งานแล้ว");
-      else if (err.code === 'auth/weak-password') setError("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร");
+      else if (err.code === 'auth/weak-password') setError("รหัสผ่านสั้นเกินไป (ต้อง 6 ตัวขึ้นไป)");
       else setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     } finally {
       setLoading(false);
@@ -195,36 +187,35 @@ const LoginScreen = ({ onLogin, onRegister }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden font-sans">
-      <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-emerald-900/20 rounded-full blur-[120px] pointer-events-none opacity-40"></div>
-      <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-900/20 rounded-full blur-[120px] pointer-events-none opacity-40"></div>
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden font-sans selection:bg-indigo-500/30">
+      {/* Background Ambience */}
+      <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none"></div>
 
-      <div className="w-full max-w-md bg-zinc-900/40 backdrop-blur-2xl p-8 rounded-3xl border border-white/5 shadow-[0_0_60px_-15px_rgba(0,0,0,0.7)] relative z-10 transition-all duration-500 ring-1 ring-white/5">
+      <div className="w-full max-w-sm bg-[#121214]/80 backdrop-blur-3xl p-8 rounded-[2rem] border border-white/5 shadow-[0_0_80px_-20px_rgba(0,0,0,0.8)] relative z-10 transition-all duration-500">
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-gradient-to-br from-zinc-800 to-zinc-900/50 rounded-2xl mx-auto flex items-center justify-center border border-white/5 shadow-2xl mb-5 group">
+          <div className="w-20 h-20 bg-gradient-to-br from-zinc-800 to-black rounded-2xl mx-auto flex items-center justify-center border border-white/5 shadow-2xl mb-6 group relative overflow-hidden">
+             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
              {isRegistering ? 
-               <div className="relative">
-                 <User size={32} className="text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-transform duration-500 group-hover:scale-110" />
-                 <div className="absolute -top-1 -right-1 text-emerald-400 text-xs font-bold">+</div>
-               </div> : 
-               <Lock size={32} className="text-zinc-400 group-hover:text-white transition-colors duration-500" />
+               <User className="text-zinc-400 group-hover:text-indigo-400 transition-colors duration-500" size={32} /> : 
+               <Lock className="text-zinc-400 group-hover:text-indigo-400 transition-colors duration-500" size={32} />
              }
           </div>
-          <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-400 tracking-tight mb-2">
-            {isRegistering ? "สร้างบัญชีใหม่" : "เข้าสู่ระบบ"}
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2 font-display">
+            {isRegistering ? "สร้างบัญชี" : "ยินดีต้อนรับ"}
           </h1>
-          <p className="text-zinc-500 text-sm font-medium">ระบบรับหนังสือเสนอ ผอ.</p>
+          <p className="text-zinc-500 text-sm">ระบบรับหนังสือเสนอ ผอ.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">Email</label>
-            <GlassInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="user@prison.go.th" />
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">Email</label>
+            <GlassInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="user@example.com" className="bg-black/30" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider ml-1">Password</label>
-            <GlassInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" />
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1">Password</label>
+            <GlassInput type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••••" className="bg-black/30" />
           </div>
 
           {error && (
@@ -236,13 +227,9 @@ const LoginScreen = ({ onLogin, onRegister }) => {
           <button 
             type="submit" 
             disabled={loading}
-            className={`w-full py-3.5 mt-2 text-white font-bold rounded-xl shadow-lg transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 ${
-                isRegistering 
-                ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/20"
-                : "bg-gradient-to-r from-zinc-700 to-zinc-600 hover:from-zinc-600 hover:to-zinc-500 shadow-black/40"
-            }`}
+            className="w-full py-3.5 mt-2 text-white font-bold rounded-xl shadow-lg transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-900/20 border border-white/10"
           >
-            {loading ? <span className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> กำลังโหลด...</span> : (isRegistering ? "ยืนยันการสมัคร" : "เข้าสู่ระบบ")}
+            {loading ? "กำลังดำเนินการ..." : (isRegistering ? "ลงทะเบียน" : "เข้าสู่ระบบ")}
           </button>
         </form>
 
@@ -256,7 +243,7 @@ const LoginScreen = ({ onLogin, onRegister }) => {
         </div>
       </div>
       
-      <div className="absolute bottom-6 text-[10px] text-zinc-700 font-mono">
+      <div className="absolute bottom-6 text-[10px] text-zinc-800 font-mono">
          © 2025 Central Correctional Institution for Young Offenders
       </div>
     </div>
@@ -283,16 +270,15 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#121214] w-full max-w-3xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-300 ring-1 ring-white/5">
-        
-        <div className="p-6 border-b border-white/5 flex justify-between items-start bg-zinc-900/50 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+      <GlassCard className="w-full max-w-3xl flex flex-col max-h-[85vh] overflow-hidden bg-[#121214] ring-1 ring-white/10">
+        <div className="p-6 border-b border-white/5 flex justify-between items-start bg-gradient-to-r from-zinc-900/80 to-transparent">
           <div className="flex gap-5">
-             <div className="bg-gradient-to-br from-zinc-800 to-black p-4 rounded-2xl border border-white/10 shadow-lg min-w-[80px] flex items-center justify-center">
-                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-500 tracking-tighter">{docItem.runningNumber || '-'}</span>
+             <div className="bg-black/40 p-4 rounded-2xl border border-white/5 shadow-inner min-w-[80px] flex items-center justify-center">
+                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-zinc-600 tracking-tighter">{docItem.runningNumber || '-'}</span>
              </div>
              <div className="pt-1">
-                <h3 className="text-lg font-bold text-zinc-100 leading-tight mb-1">รายละเอียดเอกสาร</h3>
+                <h3 className="text-lg font-bold text-zinc-100 leading-tight mb-1">แก้ไขรายการ</h3>
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
                    <Clock size={12}/> {docItem.receivedAt?.toLocaleDateString('th-TH')} {docItem.receivedAt?.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'})}
                 </div>
@@ -301,10 +287,10 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-2 rounded-full hover:bg-white/5 transition-all"><X size={20}/></button>
         </div>
 
-        <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#0a0a0a]">
+        <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#0a0a0a]/50">
            <div className={`flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/[0.02]`}>
-              <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">สถานะปัจจุบัน</span>
-              <div className={`flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-lg ${statusConfig.color}`}>
+              <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">สถานะ</span>
+              <div className={`flex items-center gap-2 font-bold text-sm px-3 py-1.5 rounded-lg border border-white/5 ${statusConfig.color}`}>
                  {statusConfig.icon && React.createElement(statusConfig.icon, { size: 16 })}
                  {statusConfig.label}
               </div>
@@ -334,18 +320,18 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
 
         <div className="p-5 border-t border-white/5 bg-zinc-900/50 backdrop-blur-xl flex justify-end gap-3">
            <button onClick={onClose} className="px-6 py-2.5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-all">ยกเลิก</button>
-           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 transition-all shadow-[0_0_15px_rgba(255,255,255,0.1)] active:scale-95 flex items-center gap-2">
+           <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 rounded-xl text-xs font-bold bg-white text-black hover:bg-zinc-200 transition-all shadow-lg shadow-white/5 active:scale-95 flex items-center gap-2">
               {saving ? <div className="w-3 h-3 border-2 border-zinc-400 border-t-black rounded-full animate-spin"/> : <Check size={14}/>}
               บันทึก
            </button>
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 };
 
-// 🏠 Dashboard: Refined Layout (Removed Logout Button)
-const Dashboard = ({ user }) => {
+// 🏠 Dashboard
+const Dashboard = ({ user, onLogout }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState('');
@@ -413,7 +399,7 @@ const Dashboard = ({ user }) => {
   const handleUpdateDoc = async (docId, newData) => { try { await updateDoc(doc(db, 'director_submissions', docId), newData); } catch (e) { alert(e.message); }};
   const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
   const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[9px] px-2 py-0.5 rounded border font-semibold ${l.color}`}>{l.label}</span> };
+  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-semibold ${l.color} shadow-sm`}>{l.label}</span> };
   
   const handleExportExcel = () => { 
     const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงาน,ผู้รับ,หมายเหตุ,เหตุผลการคืน,สถานะ\n";
@@ -451,7 +437,7 @@ const Dashboard = ({ user }) => {
       <MourningSash />
       {detailDoc && <DetailModal docItem={detailDoc} onClose={() => setDetailDoc(null)} onSave={handleUpdateDoc} />}
 
-      <div className="h-screen flex flex-col bg-[#050505] text-zinc-300 overflow-hidden relative selection:bg-emerald-900 selection:text-white">
+      <div className="h-screen flex flex-col bg-[#050505] text-zinc-300 overflow-hidden relative selection:bg-indigo-500/30 selection:text-white">
         {/* Header */}
         <header className="bg-zinc-900/40 backdrop-blur-xl border-b border-white/5 h-16 flex items-center justify-between px-6 z-30 shrink-0">
           <div className="flex items-center gap-4">
@@ -462,19 +448,21 @@ const Dashboard = ({ user }) => {
             </div>
           </div>
           <div className="flex gap-4 items-center">
-              <div className="hidden sm:flex bg-zinc-800/50 rounded-lg p-1 border border-white/5">
+              <div className="hidden sm:flex bg-[#09090b]/50 rounded-lg p-1 border border-white/5">
                  <button onClick={handleExportExcel} className="p-2 hover:bg-white/10 rounded-md transition-colors text-zinc-400 hover:text-white" title="Export Excel"><Download size={16}/></button>
                  <div className="w-px bg-white/10 mx-1 my-1"></div>
                  <button onClick={()=>window.print()} className="p-2 hover:bg-white/10 rounded-md transition-colors text-zinc-400 hover:text-white" title="Print"><Printer size={16}/></button>
               </div>
-              {/* 🔴 ปุ่มออกจากระบบถูกลบออกแล้วตามคำขอ */}
+              <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/20 transition-all">
+                <LogOut size={14} /> 
+              </button>
           </div>
         </header>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel: Form */}
-          <div className="w-[360px] min-w-[360px] bg-[#09090b] border-r border-white/5 flex flex-col z-20 shadow-xl relative">
-             <div className="p-6 border-b border-white/5 shrink-0 flex justify-between items-center">
+          <div className="w-[360px] min-w-[360px] bg-[#09090b] border-r border-white/5 flex flex-col z-20 shadow-2xl relative">
+             <div className="p-6 border-b border-white/5 shrink-0 flex justify-between items-center bg-zinc-900/20 backdrop-blur-sm">
                <h2 className="font-bold text-zinc-200 flex items-center gap-3 text-sm"><span className="bg-white/5 p-1.5 rounded-lg border border-white/5"><PenTool size={14}/></span> ลงรับหนังสือใหม่</h2>
                <button onClick={() => { setSubject("ขออนุมัติจัดซื้อวัสดุ"); setDepartment(DEPARTMENTS[0]); setReceiverName("นางสาวธุรการ"); }} className="text-[10px] bg-white/5 border border-white/5 text-zinc-500 px-3 py-1 rounded-full hover:text-white transition-all">Demo</button>
              </div>
@@ -490,7 +478,7 @@ const Dashboard = ({ user }) => {
                 {/* Inputs */}
                 <div className="space-y-4">
                    <div className="grid grid-cols-2 gap-2">
-                      {URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-[11px] py-2.5 rounded-xl font-medium border transition-all ${urgency===l.id?`${l.color} shadow-sm ring-1 ring-white/5`:'bg-black/20 text-zinc-500 border-transparent hover:bg-white/5 hover:text-zinc-300'}`}>{l.label}</button>)}
+                      {URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-[11px] py-2.5 rounded-xl font-medium border transition-all ${urgency===l.id?`${l.color} shadow-sm ring-1 ring-white/10`:'bg-black/20 text-zinc-500 border-transparent hover:bg-white/5 hover:text-zinc-300'}`}>{l.label}</button>)}
                    </div>
                    <div><label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider ml-1 mb-1.5 block">เรื่อง</label><GlassInput value={subject} onChange={e=>setSubject(e.target.value)} placeholder="ระบุชื่อเรื่อง..." /></div>
                    <CustomSelect label="หน่วยงาน" value={department} options={DEPARTMENTS} onChange={setDepartment} icon={Building2} />
@@ -504,7 +492,7 @@ const Dashboard = ({ user }) => {
              </div>
 
              <div className="p-6 border-t border-white/5 bg-[#09090b] shrink-0 z-10">
-                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white text-sm font-bold shadow-lg flex justify-center items-center gap-2 transition-all ${submitting?'bg-zinc-800 text-zinc-500 cursor-wait':'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-900/20 active:scale-[0.98]'}`}>
+                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3.5 rounded-xl text-white text-sm font-bold shadow-lg flex justify-center items-center gap-2 transition-all ${submitting?'bg-zinc-800 text-zinc-500 cursor-wait':'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-900/20 active:scale-[0.98]'}`}>
                   {submitting ? <span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/> บันทึก...</span> : <><Save size={16}/> ยืนยันลงรับ</>}
                 </button>
                 {showSuccess && <div className="mt-3 text-xs text-center text-emerald-400 font-bold bg-emerald-500/10 py-2.5 rounded-xl border border-emerald-500/20 flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2"><CheckCircle2 size={14}/> บันทึกสำเร็จ!</div>}
@@ -515,8 +503,8 @@ const Dashboard = ({ user }) => {
           {/* Right Panel: List */}
           <div className="flex-1 flex flex-col bg-[#050505] overflow-hidden relative">
              <div className="px-6 py-4 border-b border-white/5 bg-zinc-900/30 backdrop-blur-xl flex gap-3 shrink-0 items-center overflow-x-auto pr-16">
-                <div className="relative flex-1 min-w-[200px] group"><Search size={16} className="absolute left-3.5 top-3 text-zinc-600 group-focus-within:text-zinc-400 transition-colors"/><input className="w-full pl-10 pr-4 py-2.5 text-sm bg-black/20 border border-white/5 rounded-xl focus:border-zinc-500/50 focus:ring-1 focus:ring-zinc-500/50 outline-none transition-all placeholder:text-zinc-700 text-zinc-300" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
-                <div className="relative min-w-[150px]"><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full px-4 py-2.5 text-sm bg-black/20 border border-white/5 rounded-xl focus:border-zinc-500/50 outline-none text-zinc-400 cursor-pointer [color-scheme:dark]" /></div>
+                <div className="relative flex-1 min-w-[200px] group"><Search size={16} className="absolute left-3.5 top-3 text-zinc-600 group-focus-within:text-zinc-400 transition-colors"/><input className="w-full pl-10 pr-4 py-2.5 text-sm bg-black/20 border border-white/5 rounded-xl focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 outline-none transition-all placeholder:text-zinc-700 text-zinc-300" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
+                <div className="relative min-w-[150px]"><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full px-4 py-2.5 text-sm bg-black/20 border border-white/5 rounded-xl focus:border-indigo-500/50 outline-none text-zinc-400 cursor-pointer [color-scheme:dark]" /></div>
                 <div className="w-40"><CustomSelect value={filterStatus} options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ"/></div>
              </div>
 
@@ -526,9 +514,9 @@ const Dashboard = ({ user }) => {
                     const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
                     const urgencyStyle = URGENCY_LEVELS.find(u=>u.id===doc.urgency);
                     return (
-                      <div key={doc.id} className="group relative bg-[#0e0e10] hover:bg-[#131316] rounded-2xl border border-white/5 p-4 transition-all duration-200 hover:shadow-lg hover:border-white/10 flex gap-5">
+                      <div key={doc.id} className="group relative bg-[#0e0e10] hover:bg-[#131316] rounded-2xl border border-white/5 p-4 transition-all duration-200 hover:shadow-lg hover:border-white/10 flex gap-5 animate-in fade-in slide-in-from-bottom-2">
                         {/* Left Strip Indicator */}
-                        <div className={`absolute left-0 top-4 bottom-4 w-1 rounded-r-full ${urgencyStyle?.color.split(' ')[0].replace('/20','/80').replace('/50','/80') || 'bg-zinc-600'}`}></div>
+                        <div className={`absolute left-0 top-4 bottom-4 w-1 rounded-r-full ${urgencyStyle?.color.split(' ')[0].replace('/40','/80').replace('/20','/80').replace('/10','/80') || 'bg-zinc-600'}`}></div>
                         
                         {/* Number Box */}
                         <div className="flex flex-col items-center justify-center min-w-[60px] pl-2">
@@ -603,19 +591,23 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // ✅ เพิ่ม Session Persistence ให้กับทั้ง Login และ Register
+  // ✅ Login Function: ใช้ setPersistence เพื่อบังคับ Session Only
   const handleLogin = async (email, password) => {
-    // ใช้ setPersistence และ browserSessionPersistence ที่นำเข้ามาจาก firebase/auth
-    // เพื่อตั้งค่าให้ session หมดอายุเมื่อปิดเบราว์เซอร์
-    const { setPersistence, browserSessionPersistence } = await import('firebase/auth'); 
-    await setPersistence(auth, browserSessionPersistence);
-    return signInWithEmailAndPassword(auth, email, password);
+    try {
+      await setPersistence(auth, browserSessionPersistence);
+      return signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleRegister = async (email, password) => {
-    const { setPersistence, browserSessionPersistence } = await import('firebase/auth'); 
-    await setPersistence(auth, browserSessionPersistence);
-    return createUserWithEmailAndPassword(auth, email, password);
+    try {
+      await setPersistence(auth, browserSessionPersistence);
+      return createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleLogout = () => signOut(auth);
@@ -624,7 +616,7 @@ export default function App() {
     return (
       <div className="h-screen bg-[#050505] flex items-center justify-center">
          <div className="flex flex-col items-center gap-4">
-             <div className="w-10 h-10 border-2 border-zinc-800 border-t-emerald-500 rounded-full animate-spin"></div>
+             <div className="w-10 h-10 border-2 border-zinc-800 border-t-indigo-500 rounded-full animate-spin"></div>
          </div>
       </div>
     );
