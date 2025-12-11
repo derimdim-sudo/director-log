@@ -64,6 +64,15 @@ const STATUS_LEVELS = {
 
 // --- Custom Components ---
 
+// ✅ เพิ่ม MourningSash กลับมาแล้วครับ
+const MourningSash = () => (
+  <div className="fixed top-0 right-0 z-[9998] pointer-events-none w-24 h-24 overflow-hidden mix-blend-overlay opacity-80">
+    <div className="absolute top-0 right-0 w-[150%] h-8 bg-black transform rotate-45 translate-x-[28%] translate-y-[50%] origin-bottom-right shadow-2xl flex items-center justify-center border-b border-white/5">
+       <div className="w-3 h-3 bg-zinc-800/50 rounded-full shadow-inner ring-1 ring-white/10" />
+    </div>
+  </div>
+);
+
 // 🎨 Glassy Components
 const GlassCard = ({ children, className = "" }) => (
   <div className={`bg-[#18181b]/60 backdrop-blur-xl border border-white/5 shadow-xl rounded-2xl ${className}`}>
@@ -399,7 +408,7 @@ const Dashboard = ({ user, onLogout }) => {
   const handleUpdateDoc = async (docId, newData) => { try { await updateDoc(doc(db, 'director_submissions', docId), newData); } catch (e) { alert(e.message); }};
   const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
   const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[10px] px-2.5 py-1 rounded-lg border font-semibold ${l.color} shadow-sm`}>{l.label}</span> };
+  const getUrgencyBadge = (id) => { const l = URGENCY_LEVELS.find(x=>x.id===id)||URGENCY_LEVELS[0]; return <span className={`text-[9px] px-2.5 py-1 rounded-lg border font-semibold ${l.color} shadow-sm`}>{l.label}</span> };
   
   const handleExportExcel = () => { 
     const csvHeader = "เลขรับ,วันที่,เวลา,ความเร่งด่วน,เรื่อง,หน่วยงาน,ผู้รับ,หมายเหตุ,เหตุผลการคืน,สถานะ\n";
