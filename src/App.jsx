@@ -4,16 +4,7 @@ import {
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
   deleteDoc, doc, updateDoc 
 } from 'firebase/firestore';
-// ✅ เพิ่ม setPersistence และ browserSessionPersistence
-import { 
-  getAuth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut,
-  setPersistence, 
-  browserSessionPersistence 
-} from 'firebase/auth'; 
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'; 
 import { 
   BookOpen, Clock, CheckCircle2, 
   PenTool, User, Building2, Save, Search, Printer, 
@@ -353,8 +344,8 @@ const DetailModal = ({ docItem, onClose, onSave }) => {
   );
 };
 
-// 🏠 Dashboard: Refined Layout
-const Dashboard = ({ user, onLogout }) => {
+// 🏠 Dashboard: Refined Layout (Removed Logout Button)
+const Dashboard = ({ user }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subject, setSubject] = useState('');
@@ -476,9 +467,7 @@ const Dashboard = ({ user, onLogout }) => {
                  <div className="w-px bg-white/10 mx-1 my-1"></div>
                  <button onClick={()=>window.print()} className="p-2 hover:bg-white/10 rounded-md transition-colors text-zinc-400 hover:text-white" title="Print"><Printer size={16}/></button>
               </div>
-              <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/20 transition-all">
-                <LogOut size={14} /> <span className="hidden sm:inline">ออกจากระบบ</span>
-              </button>
+              {/* 🔴 ปุ่มออกจากระบบถูกลบออกแล้วตามคำขอ */}
           </div>
         </header>
 
