@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
-  deleteDoc, doc, updateDoc, limit, orderBy 
+  deleteDoc, doc, updateDoc, limit, orderBy, where // ✅ เพิ่ม where สำหรับค้นหา
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -19,7 +19,7 @@ import {
   Trash2, CheckSquare, RefreshCcw, XCircle,
   Calendar, Filter, Download, X, StickyNote,
   ChevronDown, Check, Edit3, AlertTriangle, FileText,
-  LogOut, Lock, LogIn
+  LogOut, Lock, LogIn, Eraser
 } from 'lucide-react';
 
 // ------------------------------------------------------------------
@@ -75,14 +75,14 @@ const MourningSash = () => (
 const GlassInput = (props) => (
   <input 
     {...props}
-    className={`w-full px-4 py-3 bg-[#1e293b]/40 border border-white/5 rounded-xl text-sm text-slate-200 focus:border-indigo-400/30 focus:ring-1 focus:ring-indigo-400/20 focus:bg-[#1e293b]/60 outline-none transition-all placeholder:text-slate-500 hover:border-white/10 shadow-inner ${props.className || ''}`}
+    className={`w-full px-4 py-3 bg-[#1e293b]/40 border border-white/5 rounded-xl text-sm text-slate-200 focus:border-indigo-400/30 focus:ring-1 focus:ring-indigo-400/20 focus:bg-[#1e293b]/60 outline-none transition-all placeholder:text-slate-500 hover:border-white/10 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed ${props.className || ''}`}
   />
 );
 
 const GlassTextArea = (props) => (
   <textarea 
     {...props}
-    className={`w-full px-4 py-3 bg-[#1e293b]/40 border border-white/5 rounded-xl text-sm text-slate-200 focus:border-indigo-400/30 focus:ring-1 focus:ring-indigo-400/20 focus:bg-[#1e293b]/60 outline-none transition-all placeholder:text-slate-500 hover:border-white/10 resize-none shadow-inner ${props.className || ''}`}
+    className={`w-full px-4 py-3 bg-[#1e293b]/40 border border-white/5 rounded-xl text-sm text-slate-200 focus:border-indigo-400/30 focus:ring-1 focus:ring-indigo-400/20 focus:bg-[#1e293b]/60 outline-none transition-all placeholder:text-slate-500 hover:border-white/10 resize-none shadow-inner disabled:opacity-50 disabled:cursor-not-allowed ${props.className || ''}`}
   />
 );
 
@@ -94,7 +94,7 @@ const GlassCard = ({ children, className = "" }) => (
 );
 
 // Custom Select - Twilight Style
-const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ..." }) => {
+const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder = "เลือกรายการ...", disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef(null);
 
@@ -113,10 +113,10 @@ const CustomSelect = ({ label, value, options, onChange, icon: Icon, placeholder
   };
 
   return (
-    <div className="space-y-1.5 relative" ref={wrapperRef}>
+    <div className={`space-y-1.5 relative ${disabled ? 'opacity-50 pointer-events-none' : ''}`} ref={wrapperRef}>
       {label && <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">{label}</label>}
       <div 
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         className={`w-full px-4 py-3 bg-[#1e293b]/40 border rounded-xl text-sm flex items-center justify-between transition-all duration-200 cursor-pointer group shadow-sm ${isOpen ? 'border-indigo-400/30 bg-[#1e293b]/60' : 'border-white/5 hover:border-white/10 hover:bg-[#1e293b]/50'}`}
       >
           <div className="flex items-center gap-3 overflow-hidden">
@@ -167,12 +167,11 @@ const DeleteButton = ({ onDelete }) => {
   );
 };
 
-// 🔥 Optimized: แยก Card ออกมาและใช้ React.memo ป้องกันการ Render ซ้ำเมื่อพิมพ์
+// 🔥 Optimized: Document Card
 const DocumentCard = React.memo(({ doc, setDetailDoc, handleStatusToggle, handleDelete }) => {
   const statusConfig = STATUS_LEVELS[doc.status] || STATUS_LEVELS['pending'];
   const urgencyStyle = URGENCY_LEVELS.find(u => u.id === doc.urgency);
   
-  // Format Date Helper
   const formatDate = (d) => d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
   const formatTime = (d) => d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
   
@@ -395,22 +394,46 @@ const Dashboard = ({ user, onLogout }) => {
     if (saved) try { setSavedReceivers(JSON.parse(saved)); } catch (e) {}
   }, []);
 
+  // 🔥 Intelligent Data Fetching (Smart Mode)
   useEffect(() => {
     if (!db) return;
-    // ✅ Use limit(50) to prevent performance issues
-    const q = query(
-      collection(db, 'director_submissions'), 
-      orderBy('runningNumber', 'desc'), 
-      limit(50)
-    );
-    return onSnapshot(q, (snapshot) => {
+    setLoading(true);
+
+    let q;
+
+    if (filterDate) {
+      // 📅 Mode: ค้นหาตามวันที่ (โหลดไม่อั้นสำหรับวันนั้น)
+      const dateObj = new Date(filterDate);
+      const startOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0);
+      const endOfDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59);
+
+      q = query(
+        collection(db, 'director_submissions'), 
+        where('receivedAt', '>=', startOfDay),
+        where('receivedAt', '<=', endOfDay),
+        orderBy('receivedAt', 'desc')
+      );
+    } else {
+      // 🚀 Mode: ปกติ (โหลดแค่ 50 รายการล่าสุด)
+      q = query(
+        collection(db, 'director_submissions'), 
+        orderBy('runningNumber', 'desc'), 
+        limit(50)
+      );
+    }
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), receivedAt: doc.data().receivedAt?.toDate() || new Date() }));
       setDocuments(docs);
       setLoading(false);
     });
-  }, []);
+
+    return () => unsubscribe();
+  }, [filterDate]); // ✅ Re-run query when date changes
 
   const getNextRunningNumber = () => {
+    // คำนวณเลขรับถัดไป (ใช้ค่า Local ถ้ามี หรือใช้ค่าตั้งต้น)
+    // หมายเหตุ: ในโหมดค้นหาย้อนหลัง เลขนี้อาจไม่ตรงปัจจุบันเป๊ะๆ แต่ไม่ใช่ปัญหาเพราะเราล็อกปุ่มบันทึกไว้
     if (documents.length === 0) return LAST_OLD_SYSTEM_NUMBER + 1;
     return Math.max(...documents.map(d => d.runningNumber || 0), LAST_OLD_SYSTEM_NUMBER) + 1;
   };
@@ -467,16 +490,15 @@ const Dashboard = ({ user, onLogout }) => {
     document.body.removeChild(link);
   };
 
-  // 🔥 Optimized Filtering using useMemo
+  // 🔥 Optimized Filtering
   const filteredDocs = useMemo(() => {
     return documents.filter(d => {
       const term = filterTerm.toLowerCase();
       const matchesTerm = d.subject.toLowerCase().includes(term) || d.department.toLowerCase().includes(term) || (d.runningNumber+'').includes(term);
-      let matchesDate = true;
-      if (filterDate) { const dx=d.receivedAt; matchesDate = `${dx.getFullYear()}-${String(dx.getMonth()+1).padStart(2,'0')}-${String(dx.getDate()).padStart(2,'0')}` === filterDate; }
-      return matchesTerm && matchesDate && (filterStatus === 'all' || d.status === filterStatus);
+      // Date filtering is now handled by Firestore query, so we just check filterStatus here
+      return matchesTerm && (filterStatus === 'all' || d.status === filterStatus);
     });
-  }, [documents, filterTerm, filterDate, filterStatus]);
+  }, [documents, filterTerm, filterStatus]);
 
   return (
     <>
@@ -520,19 +542,20 @@ const Dashboard = ({ user, onLogout }) => {
           <div className="w-[340px] min-w-[340px] bg-[#111827] border-r border-white/[0.05] flex flex-col z-20 relative shadow-2xl">
              <div className="p-5 border-b border-white/[0.05] shrink-0 flex justify-between items-center bg-[#1e293b]/30">
                <h2 className="font-bold text-slate-300 flex items-center gap-2 text-xs uppercase tracking-wider"><PenTool size={12} className="text-indigo-400"/> ลงรับใหม่</h2>
+               {/* ปุ่ม Demo */}
                <button onClick={() => { setSubject("ขออนุมัติจัดซื้อวัสดุ"); setDepartment(DEPARTMENTS[0]); setReceiverName("นางสาวธุรการ"); }} className="text-[10px] bg-slate-800 border border-slate-700 text-slate-400 px-2 py-0.5 rounded hover:bg-slate-700 hover:text-slate-200 transition-all">Demo</button>
              </div>
 
              <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
                 {/* Next Number Card */}
-                <div className="bg-gradient-to-br from-[#1e293b] to-[#0f172a] p-5 rounded-2xl border border-white/5 flex flex-col items-center relative overflow-hidden group shadow-lg">
+                <div className={`bg-gradient-to-br p-5 rounded-2xl border flex flex-col items-center relative overflow-hidden group shadow-lg transition-all ${filterDate ? 'from-slate-800 to-slate-900 border-white/5 opacity-50 grayscale' : 'from-[#1e293b] to-[#0f172a] border-white/5'}`}>
                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]"></div>
-                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-1 z-10">เลขรับถัดไป</span>
-                   <span className="text-5xl font-black text-slate-100 tracking-tighter z-10 drop-shadow-md">{getNextRunningNumber()}</span>
+                   <span className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mb-1 z-10">{filterDate ? 'โหมดค้นหาประวัติ' : 'เลขรับถัดไป'}</span>
+                   <span className="text-5xl font-black text-slate-100 tracking-tighter z-10 drop-shadow-md">{filterDate ? '-' : getNextRunningNumber()}</span>
                 </div>
                 
-                {/* Inputs */}
-                <div className="space-y-4">
+                {/* Inputs: Disabled when searching history */}
+                <div className={`space-y-4 ${filterDate ? 'opacity-50 pointer-events-none' : ''}`}>
                    <div className="grid grid-cols-2 gap-2">
                       {URGENCY_LEVELS.map(l=><button key={l.id} type="button" onClick={()=>setUrgency(l.id)} className={`text-[10px] py-2.5 rounded-xl font-medium border transition-all ${urgency===l.id?`${l.color} shadow-sm border-white/5 ring-1 ring-white/5`:'bg-[#1e293b]/40 text-slate-500 border-transparent hover:bg-slate-800 hover:text-slate-300'}`}>{l.label}</button>)}
                    </div>
@@ -548,9 +571,16 @@ const Dashboard = ({ user, onLogout }) => {
              </div>
 
              <div className="p-5 border-t border-white/[0.05] bg-[#111827] shrink-0 z-10">
-                <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-lg shadow-indigo-900/20 flex justify-center items-center gap-2 transition-all ${submitting?'bg-slate-800 text-slate-500 cursor-wait':'bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98]'}`}>
-                  {submitting ? "กำลังบันทึก..." : <><Save size={14}/> ยืนยัน</>}
-                </button>
+                {filterDate ? (
+                  <button onClick={() => setFilterDate('')} className="w-full py-3 rounded-xl text-slate-300 text-xs font-bold border border-white/10 hover:bg-white/5 transition-all flex justify-center items-center gap-2">
+                    <Eraser size={14}/> เคลียร์การค้นหาเพื่อลงรับใหม่
+                  </button>
+                ) : (
+                  <button onClick={handleSubmit} disabled={submitting} className={`w-full py-3 rounded-xl text-white text-xs font-bold shadow-lg shadow-indigo-900/20 flex justify-center items-center gap-2 transition-all ${submitting?'bg-slate-800 text-slate-500 cursor-wait':'bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98]'}`}>
+                    {submitting ? "กำลังบันทึก..." : <><Save size={14}/> ยืนยัน</>}
+                  </button>
+                )}
+                
                 {showSuccess && <div className="mt-3 text-[10px] text-center text-emerald-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><CheckCircle2 size={12}/> บันทึกแล้ว</div>}
                 {errorMsg && <div className="mt-3 text-[10px] text-center text-red-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><XCircle size={12}/> {errorMsg}</div>}
              </div>
@@ -559,13 +589,22 @@ const Dashboard = ({ user, onLogout }) => {
           {/* Right Panel: List */}
           <div className="flex-1 flex flex-col bg-[#0f172a] overflow-hidden relative">
              <div className="px-6 py-4 border-b border-white/[0.05] flex gap-3 shrink-0 items-center overflow-x-auto pr-16 bg-[#0f172a]">
-                <div className="relative flex-1 min-w-[200px] group"><Search size={14} className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-slate-300 transition-colors"/><input className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 focus:bg-slate-900 outline-none transition-all placeholder:text-slate-600 text-slate-200" placeholder="ค้นหา..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
-                <div className="relative min-w-[140px]"><input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full px-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 outline-none text-slate-200 cursor-pointer [color-scheme:dark]" /></div>
+                <div className="relative flex-1 min-w-[200px] group"><Search size={14} className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-slate-300 transition-colors"/><input className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 focus:bg-slate-900 outline-none transition-all placeholder:text-slate-600 text-slate-200" placeholder="ค้นหาชื่อเรื่อง..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
+                {/* 📅 Date Picker */}
+                <div className="relative min-w-[140px] group">
+                   <div className={`absolute inset-0 bg-indigo-500/20 blur-md rounded-xl transition-opacity ${filterDate ? 'opacity-100' : 'opacity-0'}`}></div>
+                   <input 
+                      type="date" 
+                      value={filterDate} 
+                      onChange={(e) => setFilterDate(e.target.value)} 
+                      className={`relative w-full px-4 py-2.5 text-sm rounded-xl focus:border-indigo-500/50 outline-none cursor-pointer transition-all ${filterDate ? 'bg-indigo-900/40 border-indigo-500 text-white' : 'bg-slate-900/50 border-slate-700/50 text-slate-200'}`} 
+                   />
+                </div>
                 <div className="w-40"><CustomSelect value={filterStatus} options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ"/></div>
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-24 custom-scrollbar">
-                {loading ? <div className="flex flex-col items-center justify-center py-32 text-slate-600 gap-4"><div className="w-6 h-6 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-32 text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl m-4"><div className="bg-slate-800/50 p-4 rounded-full mb-3"><FileText size={20} className="text-slate-500"/></div><p className="text-xs">ไม่พบเอกสาร</p></div> : 
+                {loading ? <div className="flex flex-col items-center justify-center py-32 text-slate-600 gap-4"><div className="w-6 h-6 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div></div> : filteredDocs.length===0 ? <div className="flex flex-col items-center justify-center py-32 text-slate-600 border-2 border-dashed border-slate-800 rounded-3xl m-4"><div className="bg-slate-800/50 p-4 rounded-full mb-3"><FileText size={20} className="text-slate-500"/></div><p className="text-xs">{filterDate ? `ไม่พบเอกสารของวันที่ ${new Date(filterDate).toLocaleDateString('th-TH')}` : 'ไม่พบเอกสาร'}</p></div> : 
                   filteredDocs.map(doc => (
                     <DocumentCard 
                       key={doc.id} 
