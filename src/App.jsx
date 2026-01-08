@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, 
-  deleteDoc, doc, updateDoc, limit, orderBy, where // ✅ เพิ่ม where สำหรับค้นหา
+  deleteDoc, doc, updateDoc, limit, orderBy, where 
 } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -14,11 +14,12 @@ import {
   browserSessionPersistence
 } from 'firebase/auth'; 
 import { 
-  BookOpen, Clock, CheckCircle2, 
+  BookOpen, Clock, CheckCircle, 
   PenTool, User, Building2, Save, Search, Printer, 
-  Trash2, CheckSquare, RefreshCcw, XCircle,
+  Trash2, CheckSquare, RefreshCcw, AlertCircle, 
   Calendar, Filter, Download, X, StickyNote,
-  ChevronDown, Check, Edit3, AlertTriangle, FileText,
+  ChevronDown, Check, Edit, 
+  AlertTriangle, FileText,
   LogOut, Lock, LogIn, Eraser
 } from 'lucide-react';
 
@@ -209,7 +210,7 @@ const DocumentCard = React.memo(({ doc, setDetailDoc, handleStatusToggle, handle
             {statusConfig.icon && React.createElement(statusConfig.icon, { size: 12 })} {statusConfig.label}
           </div>
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={() => setDetailDoc(doc)} className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-white/5 rounded-md transition-colors"><Edit3 size={14}/></button>
+            <button onClick={() => setDetailDoc(doc)} className="p-1.5 text-slate-500 hover:text-slate-200 hover:bg-white/5 rounded-md transition-colors"><Edit size={14}/></button>
             <DeleteButton onDelete={() => handleDelete(doc.id)}/>
           </div>
       </div>
@@ -387,6 +388,8 @@ const Dashboard = ({ user, onLogout }) => {
   const [filterTerm, setFilterTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); 
+  // ✅ เพิ่ม State สำหรับกรองส่วนงาน
+  const [filterDepartment, setFilterDepartment] = useState('all'); 
   const [detailDoc, setDetailDoc] = useState(null);
 
   useEffect(() => {
@@ -432,8 +435,6 @@ const Dashboard = ({ user, onLogout }) => {
   }, [filterDate]); // ✅ Re-run query when date changes
 
   const getNextRunningNumber = () => {
-    // คำนวณเลขรับถัดไป (ใช้ค่า Local ถ้ามี หรือใช้ค่าตั้งต้น)
-    // หมายเหตุ: ในโหมดค้นหาย้อนหลัง เลขนี้อาจไม่ตรงปัจจุบันเป๊ะๆ แต่ไม่ใช่ปัญหาเพราะเราล็อกปุ่มบันทึกไว้
     if (documents.length === 0) return LAST_OLD_SYSTEM_NUMBER + 1;
     return Math.max(...documents.map(d => d.runningNumber || 0), LAST_OLD_SYSTEM_NUMBER) + 1;
   };
@@ -495,10 +496,11 @@ const Dashboard = ({ user, onLogout }) => {
     return documents.filter(d => {
       const term = filterTerm.toLowerCase();
       const matchesTerm = d.subject.toLowerCase().includes(term) || d.department.toLowerCase().includes(term) || (d.runningNumber+'').includes(term);
+      const matchesDepartment = filterDepartment === 'all' || d.department === filterDepartment; // ✅ เพิ่ม Logic กรองส่วนงาน
       // Date filtering is now handled by Firestore query, so we just check filterStatus here
-      return matchesTerm && (filterStatus === 'all' || d.status === filterStatus);
+      return matchesTerm && matchesDepartment && (filterStatus === 'all' || d.status === filterStatus);
     });
-  }, [documents, filterTerm, filterStatus]);
+  }, [documents, filterTerm, filterStatus, filterDepartment]); // ✅ เพิ่ม filterDepartment เป็น dependency
 
   return (
     <>
@@ -581,17 +583,17 @@ const Dashboard = ({ user, onLogout }) => {
                   </button>
                 )}
                 
-                {showSuccess && <div className="mt-3 text-[10px] text-center text-emerald-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><CheckCircle2 size={12}/> บันทึกแล้ว</div>}
-                {errorMsg && <div className="mt-3 text-[10px] text-center text-red-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><XCircle size={12}/> {errorMsg}</div>}
+                {showSuccess && <div className="mt-3 text-[10px] text-center text-emerald-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><CheckCircle size={12}/> บันทึกแล้ว</div>}
+                {errorMsg && <div className="mt-3 text-[10px] text-center text-red-400 font-bold flex items-center justify-center gap-1 animate-in fade-in slide-in-from-bottom-1"><AlertCircle size={12}/> {errorMsg}</div>}
              </div>
           </div>
 
           {/* Right Panel: List */}
           <div className="flex-1 flex flex-col bg-[#0f172a] overflow-hidden relative">
              <div className="px-6 py-4 border-b border-white/[0.05] flex gap-3 shrink-0 items-center overflow-x-auto pr-16 bg-[#0f172a]">
-                <div className="relative flex-1 min-w-[200px] group"><Search size={14} className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-slate-300 transition-colors"/><input className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 focus:bg-slate-900 outline-none transition-all placeholder:text-slate-600 text-slate-200" placeholder="ค้นหาชื่อเรื่อง..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
+                <div className="relative flex-1 min-w-[180px] group"><Search size={14} className="absolute left-3 top-3.5 text-slate-500 group-focus-within:text-slate-300 transition-colors"/><input className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-indigo-500/50 focus:bg-slate-900 outline-none transition-all placeholder:text-slate-600 text-slate-200" placeholder="ค้นหาชื่อเรื่อง..." value={filterTerm} onChange={e=>setFilterTerm(e.target.value)}/></div>
                 {/* 📅 Date Picker */}
-                <div className="relative min-w-[140px] group">
+                <div className="relative min-w-[130px] group">
                    <div className={`absolute inset-0 bg-indigo-500/20 blur-md rounded-xl transition-opacity ${filterDate ? 'opacity-100' : 'opacity-0'}`}></div>
                    <input 
                       type="date" 
@@ -600,7 +602,26 @@ const Dashboard = ({ user, onLogout }) => {
                       className={`relative w-full px-4 py-2.5 text-sm rounded-xl focus:border-indigo-500/50 outline-none cursor-pointer transition-all ${filterDate ? 'bg-indigo-900/40 border-indigo-500 text-white' : 'bg-slate-900/50 border-slate-700/50 text-slate-200'}`} 
                    />
                 </div>
-                <div className="w-40"><CustomSelect value={filterStatus} options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} onChange={setFilterStatus} icon={Filter} placeholder="สถานะ"/></div>
+                {/* ✅ Department Filter */}
+                <div className="w-40">
+                  <CustomSelect 
+                    value={filterDepartment} 
+                    options={[{value:'all',label:'ทุกส่วนงาน'}, ...DEPARTMENTS.map(d => ({value: d, label: d}))]} 
+                    onChange={setFilterDepartment} 
+                    icon={Building2} 
+                    placeholder="ส่วนงาน"
+                  />
+                </div>
+                {/* Status Filter */}
+                <div className="w-36">
+                  <CustomSelect 
+                    value={filterStatus} 
+                    options={[{value:'all',label:'ทุกสถานะ'},{value:'pending',label:'รอเสนอ'},{value:'signed',label:'เซ็นแล้ว'},{value:'returned',label:'คืนเรื่อง'}]} 
+                    onChange={setFilterStatus} 
+                    icon={Filter} 
+                    placeholder="สถานะ"
+                  />
+                </div>
              </div>
 
              <div className="flex-1 overflow-y-auto p-6 space-y-3 pb-24 custom-scrollbar">
@@ -632,44 +653,4 @@ const Dashboard = ({ user, onLogout }) => {
       </div>
     </>
   );
-}
-
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [authChecking, setAuthChecking] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthChecking(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = async (email, password) => {
-    try {
-      await setPersistence(auth, browserSessionPersistence);
-      return signInWithEmailAndPassword(auth, email, password);
-    } catch (error) { throw error; }
-  };
-
-  const handleRegister = async (email, password) => {
-    try {
-      await setPersistence(auth, browserSessionPersistence);
-      return createUserWithEmailAndPassword(auth, email, password);
-    } catch (error) { throw error; }
-  };
-
-  const handleLogout = () => signOut(auth);
-
-  if (authChecking) {
-    return (
-      <div className="h-screen bg-[#0f172a] flex items-center justify-center">
-         <div className="w-8 h-8 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (!user) return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />;
-  return <Dashboard user={user} onLogout={handleLogout} />;
 }
